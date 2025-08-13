@@ -14,6 +14,11 @@ fi
 # 创建上传文件夹（如果不存在）
 mkdir -p uploads
 
+# 启动Redis服务
+echo "启动Redis服务..."
+redis-server --daemonize yes
+sleep 2
+
 # 启动FastAPI服务器
 echo "正在启动FastAPI服务器..."
 uvicorn main:app --reload --host 0.0.0.0 --port 8000 &

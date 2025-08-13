@@ -16,6 +16,7 @@ def get_redis_client():
         redis.close()
 
 @router.get("/{task_id}")
+@router.get("/{task_id}/")
 async def get_task_status(task_id: str, redis: Redis = Depends(get_redis_client)) -> Dict[str, Any]:
     """
     获取任务状态和结果

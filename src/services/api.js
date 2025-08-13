@@ -20,7 +20,7 @@ export const uploadAndAnalyzeImage = async (imageFile, prompt, taskType = 'descr
     formData.append('prompt', prompt);
     formData.append('task_type', taskType);
 
-    const response = await fetch(`${API_BASE_URL}/analyze/image`, {
+    const response = await fetch(`${API_BASE_URL}/analyze/image/`, {
       method: 'POST',
       body: formData,
     });
@@ -44,14 +44,24 @@ export const uploadAndAnalyzeImage = async (imageFile, prompt, taskType = 'descr
  */
 export const getTaskResult = async (taskId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`);
+    console.log(`获取任务结果，任务ID: ${taskId}`);
+    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/`);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || '获取任务结果失败');
+      const errorText = await response.text();
+      let errorDetail;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorDetail = errorData.detail;
+      } catch (e) {
+        errorDetail = errorText;
+      }
+      throw new Error(errorDetail || `获取任务结果失败，状态码: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log(`获取任务成功，状态: ${data.status}`);
+    return data;
   } catch (error) {
     console.error('获取任务结果时出错:', error);
     throw error;
@@ -67,7 +77,7 @@ export const checkHealth = async () => {
     const response = await fetch(`${API_BASE_URL}/health`);
 
     if (!response.ok) {
-      throw new Error('健康检查失败');
+      throw new Error(`健康检查失败，状态码: ${response.status}`);
     }
 
     return await response.json();
@@ -76,6 +86,13 @@ export const checkHealth = async () => {
     throw error;
   }
 };
+
+/**
+ * 延迟函数
+ * @param {number} ms - 延迟毫秒数 
+ * @returns {Promise<void>}
+ */
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * 轮询任务结果，直到任务完成或失败
@@ -104,16 +121,31 @@ export const pollTaskResult = async (
       onProgress(attempts, maxAttempts);
     }
 
-    const result = await getTaskResult(taskId);
-    
-    if (result.status === 'completed' || result.status === 'failed') {
-      return result;
+    try {
+      const result = await getTaskResult(taskId);
+      
+      if (result.status === 'completed' || result.status === 'failed') {
+        // 任务已完成或失败，返回结果
+        if (result.status === 'failed' && result.error) {
+          throw new Error(`任务执行失败: ${result.error}`);
+        }
+        return result;
+      }
+      
+      // 添加短暂延迟，避免连续请求
+      await delay(interval);
+      
+      // 继续轮询
+      return poll();
+    } catch (error) {
+      // 如果是404错误(任务不存在)，可能是任务刚开始处理，等待一会再试
+      if (error.message && error.message.includes('未找到任务')) {
+        console.log(`任务 ${taskId} 尚未准备好，稍后再试...`);
+        await delay(interval);
+        return poll();
+      }
+      throw error;
     }
-
-    // 如果任务仍在处理中，等待然后再次轮询
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(poll()), interval);
-    });
   };
 
   return poll();

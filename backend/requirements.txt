@@ -11,3 +11,4 @@ requests==2.31.0
 rasterio==1.3.9
 gdal==3.8.1
 numpy==1.26.3
+zai-sdk

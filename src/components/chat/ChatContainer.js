@@ -78,11 +78,12 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
     
+    // 处理中消息ID (用于后续删除)
+    let processingMessageId = null;
+    
     try {
       if (currentImage) {
         // 如果有当前图像，发送图像分析请求
-        const response = await uploadAndAnalyzeImage(currentImage, text);
-        
         // 添加处理中消息
         const processingMessage = {
           id: Date.now() + 1,
@@ -91,28 +92,45 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
           timestamp: new Date()
         };
         
+        processingMessageId = processingMessage.id;
         setMessages(prev => [...prev, processingMessage]);
         
+        console.log('开始上传图像...');
+        const response = await uploadAndAnalyzeImage(currentImage, text);
+        console.log('图像上传成功，获取任务ID:', response.task_id);
+        
         // 轮询任务结果
+        console.log('开始轮询任务结果...');
         const result = await pollTaskResult(
           response.task_id, 
           3000, 
           30, 
           (attempts, maxAttempts) => {
             console.log(`轮询进度: ${attempts}/${maxAttempts}`);
+            // 可以更新处理中消息，显示进度
+            if (processingMessageId) {
+              setMessages(prev => prev.map(msg => 
+                msg.id === processingMessageId 
+                  ? {...msg, text: `正在分析图像，请稍候... (${attempts}/${maxAttempts})`}
+                  : msg
+              ));
+            }
           }
         );
+        
+        console.log('轮询完成，获取结果:', result);
         
         // 添加AI回复
         const aiMessage = {
           id: Date.now() + 2,
           text: result.result || '分析完成，但未返回结果',
           sender: 'ai',
-          timestamp: new Date()
+          timestamp: new Date(),
+          thinking: result.thinking // 如果有思考过程，也显示出来
         };
         
         // 移除处理中消息并添加AI回复
-        setMessages(prev => prev.filter(msg => msg.id !== processingMessage.id).concat([aiMessage]));
+        setMessages(prev => prev.filter(msg => msg.id !== processingMessageId).concat([aiMessage]));
         
         // 清除当前图像
         setCurrentImage(null);
@@ -132,9 +150,16 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
       }
     } catch (error) {
       console.error('发送消息出错:', error);
+      
+      // 移除处理中消息
+      if (processingMessageId) {
+        setMessages(prev => prev.filter(msg => msg.id !== processingMessageId));
+      }
+      
+      // 添加错误消息
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
-        text: `抱歉，处理您的消息时出现了错误: ${error.message}`,
+        text: `抱歉，处理您的消息时出现了错误: ${error.message || JSON.stringify(error)}`,
         sender: 'ai',
         error: true,
         timestamp: new Date()

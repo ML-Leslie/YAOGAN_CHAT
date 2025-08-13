@@ -12,10 +12,17 @@ class TaskType(str, Enum):
     CUSTOM = "custom"
 
 
+class ModelType(str, Enum):
+    """模型类型枚举"""
+    GLM_4V = "glm-4v"
+    GLM_45V = "glm-4.5v"
+
+
 class AnalyzeRequest(BaseModel):
     """图像分析请求模型"""
     prompt: str = Field(..., description="分析提示或问题")
     task_type: TaskType = Field(TaskType.DESCRIPTION, description="分析任务类型")
+    model: ModelType = Field(ModelType.GLM_45V, description="使用的模型")
 
 
 class AnalyzeResponse(BaseModel):
@@ -23,7 +30,10 @@ class AnalyzeResponse(BaseModel):
     task_id: str = Field(..., description="任务ID")
     status: str = Field(..., description="任务状态")
     message: Optional[str] = Field(None, description="任务消息")
+    result: Optional[Any] = Field(None, description="分析结果")
     error: Optional[str] = Field(None, description="错误信息(如果有)")
+    completed_at: Optional[float] = Field(None, description="完成时间戳")
+    thinking: Optional[str] = Field(None, description="模型思考过程")
 
 
 class TaskResult(BaseModel):
@@ -33,3 +43,4 @@ class TaskResult(BaseModel):
     result: Optional[Any] = Field(None, description="分析结果")
     error: Optional[str] = Field(None, description="错误信息(如果有)")
     completed_at: Optional[float] = Field(None, description="完成时间戳")
+    thinking: Optional[str] = Field(None, description="模型思考过程")
