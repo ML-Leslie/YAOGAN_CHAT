@@ -1,0 +1,119 @@
+import React, { useState, useEffect, useRef } from 'react';
+import './Sidebar.css';
+
+const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat }) => {
+  // 默认状态为折叠
+  const [collapsed, setCollapsed] = useState(false);
+  // 默认未固定
+  const [isPinned, setIsPinned] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+  const sidebarRef = useRef(null);
+
+  // 切换侧边栏固定状态
+  const togglePin = (e) => {
+    e.stopPropagation(); // 防止事件冒泡
+    setIsPinned(!isPinned);
+    if (!isPinned) {
+      setCollapsed(false); // 如果固定，展开侧边栏
+    }
+  };
+
+  // 鼠标进入和离开侧边栏事件处理
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
+  // 根据鼠标悬停状态和固定状态决定侧边栏是否折叠
+  useEffect(() => {
+    if (!isPinned) {
+      setCollapsed(!isHovered);
+    }
+  }, [isHovered, isPinned]);
+
+  return (
+    <div 
+      ref={sidebarRef}
+      className={`sidebar ${collapsed ? 'collapsed' : ''} ${isPinned ? 'pinned' : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* 固定按钮，放在侧边栏的左上角 */}
+      <button 
+        className={`pin-sidebar ${isPinned ? 'active' : ''}`} 
+        onClick={togglePin}
+        title={isPinned ? "取消固定" : "固定侧边栏"}
+      >
+        <div className="pin-icon"></div>
+      </button>
+      
+      <div className="sidebar-header">
+        <button className="new-chat-button" onClick={onNewChat}>
+          <span className="button-icon"></span>
+          <span className="button-text">新建会话</span>
+        </button>
+      </div>
+      
+      <div className="chat-history">
+        <h3 className="history-title">历史会话</h3>
+        <ul className="chat-list">
+          {chats.map(chat => (
+            <li 
+              key={chat.id} 
+              className={`chat-item ${activeChat?.id === chat.id ? 'active' : ''}`}
+              onClick={() => onChatSelect(chat.id)}
+            >
+              <div className="chat-item-title">{chat.title || '新对话'}</div>
+              <div className="chat-item-date">{formatDate(chat.lastUpdated)}</div>
+            </li>
+          ))}
+          
+          {chats.length === 0 && (
+            <li className="no-chats-message">暂无历史会话</li>
+          )}
+        </ul>
+      </div>
+      
+      {/* 用户信息区域 - 头像居左，名称居右 */}
+      <div className="user-profile">
+        <div className="user-profile-inner">
+          <div className="user-avatar">
+            LC
+          </div>
+          <div className="user-info">
+            <div className="user-name">Leslie Chan</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 格式化日期为"今天"、"昨天"或具体日期
+const formatDate = (timestamp) => {
+  if (!timestamp) return '';
+  
+  const date = new Date(timestamp);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  
+  const isToday = date.toDateString() === today.toDateString();
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+  
+  if (isToday) {
+    return '今天';
+  } else if (isYesterday) {
+    return '昨天';
+  } else {
+    return new Intl.DateTimeFormat('zh-CN', {
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  }
+};
+
+export default Sidebar;

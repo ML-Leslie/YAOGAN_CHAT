@@ -1,0 +1,30 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-bottom: none; /* 移除底部边框 */
+  height: 64px; /* 固定高度 */
+  box-sizing: border-box;
+  width: 100%;
+  z-index: 101; /* 确保头部在侧边栏上面 */
+  background-color: transparent; /* 移除背景颜色 */
+}
+
+.app-name {
+  font-size: 20px;
+  font-weight: 500;
+  color: #202124;
+}
+
+.app-version {
+  font-size: 14px;
+  color: #5f6368;
+  display: flex;
+  align-items: center;
+}
+
+.app-version::before {
+  content: '•';
+  margin-right: 8px;
+}

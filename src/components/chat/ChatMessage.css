@@ -1,0 +1,151 @@
+.message-wrapper {
+  display: flex;
+  margin-bottom: 20px;
+  width: 100%;
+  animation: message-appear 0.3s ease-in-out;
+}
+
+.user-message {
+  flex-direction: row-reverse;
+}
+
+.ai-message, .system-message {
+  flex-direction: row;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin: 0 12px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar {
+  width: 100%;
+  height: 100%;
+  background-color: #0f5cce;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.ai-avatar {
+  width: 100%;
+  height: 100%;
+  background-color: #1a73e8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.system-avatar {
+  width: 100%;
+  height: 100%;
+  background-color: #757575;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.message-bubble {
+  max-width: 70%;
+  padding: 14px 18px;
+  border-radius: 18px;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.user-message .message-bubble {
+  background-color: #dcf8c6;
+  border-top-right-radius: 5px;
+}
+
+.ai-message .message-bubble {
+  background-color: white;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  border-top-left-radius: 5px;
+}
+
+.system-message .message-bubble {
+  background-color: #f5f5f5;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  border-top-left-radius: 5px;
+}
+
+.error-message {
+  background-color: #ffebee !important;
+  color: #b71c1c;
+}
+
+.message-image-container {
+  margin-bottom: 10px;
+}
+
+.message-image {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.message-content {
+  font-size: 16px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-timestamp {
+  font-size: 11px;
+  color: #999;
+  margin-top: 5px;
+  text-align: right;
+}
+
+@keyframes message-appear {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 添加上传图像按钮样式 */
+.function-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.upload-image-button {
+  padding: 8px 12px;
+  background-color: #f0f2f5;
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.upload-image-button:hover {
+  background-color: #e4e6e8;
+}

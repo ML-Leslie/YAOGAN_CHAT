@@ -1,0 +1,150 @@
+.App {
+  text-align: center;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* 这里的旧样式将被替换或删除，因为我们使用了新的布局 */
+
+.mode-selector {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.mode-selector button {
+  padding: 0.5rem 1.5rem;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.mode-selector button.active {
+  background-color: #34a853;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+  transform: scale(1.05);
+}
+
+.mode-selector button:hover {
+  background-color: #3367d6;
+}
+
+.App-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: #f5f5f5;
+}
+
+.App-footer {
+  background-color: #282c34;
+  padding: 1rem;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.canvas-container,
+.image-canvas-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.canvas-tools {
+  margin-bottom: 1rem;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+}
+
+.canvas-tools button,
+.upload-button {
+  padding: 0.5rem 1rem;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+  display: inline-block;
+}
+
+.canvas-tools button:hover,
+.upload-button:hover {
+  background-color: #3367d6;
+}
+
+.canvas-tools button:active,
+.upload-button:active {
+  background-color: #2a56c6;
+}
+
+/* 为不同类型的按钮提供不同颜色 */
+.canvas-tools button:nth-child(2) {
+  background-color: #34a853;
+}
+
+.canvas-tools button:nth-child(2):hover {
+  background-color: #2d9348;
+}
+
+.canvas-tools button:nth-child(3) {
+  background-color: #ea4335;
+}
+
+.canvas-tools button:nth-child(3):hover {
+  background-color: #d33426;
+}
+
+/* 画布控制区样式 */
+.canvas-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #f0f0f0;
+  border-top: 1px solid #e0e0e0;
+}
+
+.canvas-controls button {
+  padding: 0.5rem 1.5rem;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.canvas-controls button.active {
+  background-color: #34a853;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
+
+.canvas-controls button:hover {
+  background-color: #3367d6;
+}
+
+/* 返回按钮特殊样式 */
+.canvas-controls button:last-child {
+  background-color: #ea4335;
+}
+
+.canvas-controls button:last-child:hover {
+  background-color: #d33426;
+}

@@ -1,0 +1,39 @@
+.function-buttons {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background-color: transparent;
+}
+
+.function-button {
+  padding: 12px 20px;
+  background-color: #f8f9fa;
+  border: 1px solid #dadce0;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #202124;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.function-button:hover {
+  background-color: #f1f3f4;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.1);
+}
+
+.function-button:active {
+  background-color: #e8eaed;
+  transform: scale(0.97);
+}
+
+.function-button.active {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  border-color: #d2e3fc;
+}
