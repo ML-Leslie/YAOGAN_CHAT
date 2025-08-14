@@ -1,76 +1,157 @@
-# LLM 对话应用与遥感图像标记工具
+## 演示
+- ![](./images/演示.gif)
 
-这是一个基于React的LLM对话应用，集成了遥感图像标记功能。主体为类似ChatGPT的对话界面，附带基于Konva.js的图像标记工具。
+## 环境要求
+- Linux 最好，因为后端用到的redis服务在linux上安装最容易
+- 前端就是 node.js（之前软件工程应该都安装了）
 
-## 功能特点
+## 如何启动？
+### 1. 后端
+- 打开一个终端
+- 进入 `backend` 目录
+- 有快捷安装命令 `start.sh`，其实就是：
+    - 安装python包
+    - 启动Redis服务
+    - 数据库是否已初始化
+    - 启动FastAPI服务器
+    - 启动Celery Worker
+> - 我个人建议一步步来才知道哪里有问题
 
-### LLM对话功能
-- 聊天界面，支持多轮对话
-- 历史会话管理
-- 多种功能按钮扩展
+### 2. 前端
+- 新建另外一个终端
+- 进入 `src` 文件夹
+- 执行：
+    ```
+    npm install
+    npm start
+    ```
 
-### 遥感图像标记功能
-- 基础绘图模式：创建和编辑基本图形（矩形、圆形）
-- 图像处理模式：上传遥感图像，进行标记和编辑
-- 图像导出功能
+### 3. 查看
+- 浏览器打开：`127.0.0.1:3000`
 
-## 技术栈
+---
 
-- React.js
-- Konva.js 和 React-Konva
-- HTML5 Canvas
-- 响应式界面设计
+## 目前主要缺陷
+- 前端UI设计某些地方很丑，聊天框上面几个功能选项是累赘
+- 回答的markdown在前端渲染不够完善
+- 用户登录管理功能不完善（没有写登录页面以及新用户注册）
+- 我其实设置了一个画布功能，但是还没有用到，我的想法是：
+    - 当用户要求AI框选具体物体（比如飞机）具体位置时
+    - 聊天中展示画布按钮并让用户点击
+    - 在右侧弹出画布并根据AI返回的坐标进行框选
+- 后端与AI交互的提示词设计不够完善
 
-## 使用说明
 
-1. **对话界面**：
-   - 左侧边栏可以创建新会话或切换历史会话
-   - 中间区域展示对话内容
-   - 底部功能区提供多种工具按钮和消息输入框
+--- 
+## 附录
+### redis 安装
+我给你分成 **Windows / macOS / Linux** 三种环境分别讲，本地安装和运行 Redis 的步骤会不一样。
 
-2. **遥感图像标记**：
-   - 在对话界面底部功能区点击"画布展示"按钮进入标记模式
-   - 在画布模式下可以切换"基础画布"和"图像画布"两种类型
-   - 使用右侧辅助面板获取更多信息
-   - 完成后点击"返回对话"按钮回到聊天界面
+---
 
-3. **基础画布操作**：
-   - 点击"添加矩形"或"添加圆形"按钮，向画布添加新图形
-   - 点击选择图形，选中后可以拖拽移动
-   - 选中图形后，点击"删除选中项"可以删除该图形
+## 1️⃣ Linux（Ubuntu/Debian/CentOS 等）
 
-4. **图像画布操作**：
-   - 点击"上传图片"按钮，上传遥感图像
-   - 选中图像后可以拖拽、缩放和旋转
-   - 点击"导出画布"按钮，将标记后的图像保存为PNG
-   - 选中图像后，点击"删除选中图像"按钮可以删除该图像
+Redis 原生是 Linux 软件，所以在 Linux 下安装最方便。
 
-## 开发与运行
+**① 直接用包管理器安装（推荐）**
 
-### 安装依赖
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install redis-server
+
+# CentOS / RHEL
+sudo yum install redis
 ```
-npm install
+
+**② 启动 Redis 服务**
+
+```bash
+sudo systemctl enable redis   # 开机自启
+sudo systemctl start redis    # 启动服务
 ```
 
-### 运行开发服务器
-```
-npm start
-```
+**③ 测试是否运行正常**
 
-### 构建生产版本
-```
-npm run build
+```bash
+redis-cli ping
+# 返回 PONG 表示正常
 ```
 
-## 未来计划功能
+---
 
-- 接入真实LLM API（如ChatGPT）进行对话
-- 扩展更多绘图工具和标记选项
-- 添加遥感图像分析功能
-- 图像处理和增强工具
-- 导出标记结果为常用GIS格式
-- 多用户协作编辑功能
+## 2️⃣ macOS
 
-## 许可证
+**① 使用 Homebrew 安装**
 
-MIT
+```bash
+brew install redis
+```
+
+**② 启动 Redis**
+
+```bash
+brew services start redis  # 后台启动
+# 或前台运行
+redis-server
+```
+
+**③ 测试**
+
+```bash
+redis-cli ping
+```
+
+---
+
+## 3️⃣ Windows
+
+Redis 官方从 5.x 版本以后**不再提供 Windows 版**，但可以用以下方式：
+
+**方法 A：使用微软维护的旧版（适合学习）**
+
+1. 下载 [Redis for Windows（msopentech版）](https://github.com/microsoftarchive/redis/releases)
+2. 解压后进入目录
+3. 运行：
+
+   ```powershell
+   redis-server.exe redis.windows.conf
+   ```
+4. 打开另一个终端：
+
+   ```powershell
+   redis-cli.exe ping
+   ```
+
+**方法 B：用 WSL（推荐）**
+
+1. 安装 WSL（Windows Subsystem for Linux）
+2. 在 WSL 里执行 Linux 安装步骤（见上面 Linux 部分）
+
+**方法 C：Docker 运行（跨平台统一）**
+
+```bash
+docker run -d --name redis -p 6379:6379 redis
+```
+
+---
+
+## 4️⃣ 常用操作
+
+* **配置文件位置**：`/etc/redis/redis.conf`（Linux）或安装目录下的 `.conf`
+* **修改绑定地址**（允许远程访问）：
+
+  ```conf
+  bind 0.0.0.0
+  ```
+* **密码设置**：
+
+  ```conf
+  requirepass your_password
+  ```
+* **查看 Redis 版本**：
+
+  ```bash
+  redis-server --version
+  ```
+

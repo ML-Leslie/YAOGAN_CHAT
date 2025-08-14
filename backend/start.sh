@@ -11,13 +11,17 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 创建上传文件夹（如果不存在）
-mkdir -p uploads
 
 # 启动Redis服务
 echo "启动Redis服务..."
 redis-server --daemonize yes
 sleep 2
+
+# 检查数据库是否已初始化
+if [ ! -f yaogan_chat.db ]; then
+    echo "初始化数据库..."
+    python init_db.py
+fi
 
 # 启动FastAPI服务器
 echo "正在启动FastAPI服务器..."

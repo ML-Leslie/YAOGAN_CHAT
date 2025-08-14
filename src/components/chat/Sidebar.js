@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Sidebar.css';
 
-const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat }) => {
+const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, user }) => {
   // 默认状态为折叠
   const [collapsed, setCollapsed] = useState(false);
   // 默认未固定
@@ -81,10 +81,10 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat }) => {
       <div className="user-profile">
         <div className="user-profile-inner">
           <div className="user-avatar">
-            LC
+            {user?.displayName?.charAt(0) || user?.username?.charAt(0) || '?'}
           </div>
           <div className="user-info">
-            <div className="user-name">Leslie Chan</div>
+            <div className="user-name">{user?.displayName || user?.username || '未登录'}</div>
           </div>
         </div>
       </div>

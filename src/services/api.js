@@ -6,22 +6,229 @@
 // API基础URL
 const API_BASE_URL = 'http://localhost:8000/api';
 
+// 从本地存储获取访问令牌
+const getToken = () => localStorage.getItem('access_token');
+// eslint-disable-next-line no-unused-vars
+const getUserInfo = () => {
+  const userInfo = localStorage.getItem('user_info');
+  return userInfo ? JSON.parse(userInfo) : null;
+};
+
+/**
+ * 用户登录
+ * @param {string} username - 用户名
+ * @param {string} password - 密码
+ * @returns {Promise<Object>} - 包含访问令牌和用户信息的响应对象
+ */
+export const login = async (username, password) => {
+  try {
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
+
+    const response = await fetch(`${API_BASE_URL}/users/token`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || '登录失败');
+    }
+
+    const data = await response.json();
+    
+    // 保存令牌和用户信息到本地存储
+    localStorage.setItem('access_token', data.access_token);
+    localStorage.setItem('user_info', JSON.stringify({
+      id: data.user_id,
+      username: data.username,
+      displayName: data.display_name
+    }));
+    
+    return data;
+  } catch (error) {
+    console.error('登录时出错:', error);
+    throw error;
+  }
+};
+
+/**
+ * 用户注册
+ * @param {string} username - 用户名
+ * @param {string} password - 密码
+ * @param {string} displayName - 显示名称
+ * @returns {Promise<Object>} - 包含用户信息的响应对象
+ */
+export const register = async (username, password, displayName) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username,
+        password,
+        display_name: displayName
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || '注册失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('注册时出错:', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取当前用户信息
+ * @returns {Promise<Object>} - 用户信息
+ */
+export const getCurrentUser = async () => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('获取用户信息失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('获取用户信息时出错:', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取用户的聊天历史
+ * @returns {Promise<Array>} - 聊天历史列表
+ */
+export const getUserChats = async () => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/chats`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('获取聊天历史失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('获取聊天历史时出错:', error);
+    throw error;
+  }
+};
+
+/**
+ * 创建新的聊天会话
+ * @param {string} title - 聊天标题
+ * @returns {Promise<Object>} - 新创建的聊天会话
+ */
+export const createNewChat = async (title = '新对话') => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/chats?title=${encodeURIComponent(title)}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('创建聊天失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('创建聊天时出错:', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取聊天消息
+ * @param {string} chatId - 聊天ID
+ * @returns {Promise<Array>} - 消息列表
+ */
+export const getChatMessages = async (chatId) => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/chats/${chatId}/messages`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('获取聊天消息失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('获取聊天消息时出错:', error);
+    throw error;
+  }
+};
+
 /**
  * 上传并分析遥感图像
  * @param {File} imageFile - 要分析的图像文件
  * @param {string} prompt - 分析提示或问题
  * @param {string} taskType - 任务类型（description, detection, segmentation）
+ * @param {string} chatId - 聊天会话ID（可选）
  * @returns {Promise<Object>} - 包含任务ID的响应对象
  */
-export const uploadAndAnalyzeImage = async (imageFile, prompt, taskType = 'description') => {
+export const uploadAndAnalyzeImage = async (imageFile, prompt, taskType = 'description', chatId = null) => {
   try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
     const formData = new FormData();
     formData.append('file', imageFile);
     formData.append('prompt', prompt);
     formData.append('task_type', taskType);
+    if (chatId) {
+      formData.append('chat_id', chatId);
+    }
 
     const response = await fetch(`${API_BASE_URL}/analyze/image/`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
       body: formData,
     });
 
@@ -83,6 +290,43 @@ export const checkHealth = async () => {
     return await response.json();
   } catch (error) {
     console.error('健康检查时出错:', error);
+    throw error;
+  }
+};
+
+/**
+ * 处理文本消息（基于已有图像上下文）
+ * @param {string} prompt - 用户提问
+ * @param {string} chatId - 聊天ID
+ * @returns {Promise<Object>} - 处理结果
+ */
+export const processTextMessage = async (prompt, chatId) => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chat/text`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        prompt,
+        chat_id: chatId
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || '处理文本消息失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('处理文本消息时出错:', error);
     throw error;
   }
 };

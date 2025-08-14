@@ -15,7 +15,43 @@ class ZhipuAiService:
         self.api_key = api_key or ZHIPUAI_API_KEY
         self.client = ZhipuAiClient(api_key=self.api_key)
         
-    async def analyze_image(self, image_base64=None, image_url=None, prompt=None, task_type=None, model="glm-4.5v"):
+    def _clean_special_tags(self, text):
+        """
+        清理文本中的特殊标记
+        
+        Args:
+            text: 原始文本
+            
+        Returns:
+            清理后的文本
+        """
+        if not text:
+            return text
+            
+        # 移除智谱AI模型输出中的特殊标记
+        tags_to_remove = [
+            "<|begin_of_box|>", "<|end_of_box|>",
+            "<|begin_of_text|>", "<|end_of_text|>",
+            "<|begin_of_list|>", "<|end_of_list|>",
+            "<|begin_of_attribute|>", "<|end_of_attribute|>"
+        ]
+        
+        cleaned_text = text
+        for tag in tags_to_remove:
+            cleaned_text = cleaned_text.replace(tag, "")
+        
+        # 使用正则表达式处理竖线标记
+        import re
+        # 移除开头的单竖线或双竖线
+        cleaned_text = re.sub(r'^\s*\|\|\s*', '', cleaned_text)
+        cleaned_text = re.sub(r'^\s*\|\s*', '', cleaned_text)
+        # 移除结尾的单竖线或双竖线
+        cleaned_text = re.sub(r'\s*\|\|\s*$', '', cleaned_text)
+        cleaned_text = re.sub(r'\s*\|\s*$', '', cleaned_text)
+        
+        return cleaned_text
+        
+    async def analyze_image(self, image_base64=None, image_url=None, prompt=None, task_type=None, model="glm-4.5v", context_messages=None):
         """
         调用智谱AI GLM-4.5v API分析图像
         
@@ -25,6 +61,7 @@ class ZhipuAiService:
             prompt: 分析提示或问题
             task_type: 任务类型，用于构建系统提示
             model: 使用的模型，默认为"glm-4.5v"
+            context_messages: 对话上下文消息列表
             
         Returns:
             API响应结果
@@ -37,7 +74,7 @@ class ZhipuAiService:
         elif task_type == "segmentation":
             system_prompt = "你是一个专业的遥感图像分析AI助手。请对这张遥感图像进行语义分割，识别不同类型的地表覆盖物（如建筑、道路、植被、水体等）。"
         else:
-            system_prompt = "你是一个专业的遥感图像分析AI助手。请分析这张遥感图像并回答问题。"
+            system_prompt = "你是一个专业的遥感图像分析AI助手。请分析这张遥感图像并回答问题。针对用户的问题，请基于历史对话的上下文给出相关的答案。"
         
         # 准备消息内容
         content = []
@@ -69,12 +106,18 @@ class ZhipuAiService:
             {
                 "role": "system",
                 "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": content
             }
         ]
+        
+        # 添加上下文消息
+        if context_messages and len(context_messages) > 0:
+            messages.extend(context_messages)
+        
+        # 添加当前用户消息
+        messages.append({
+            "role": "user",
+            "content": content
+        })
         
         try:
             logger.info(f"发送请求到智谱AI {model} API")
@@ -87,7 +130,15 @@ class ZhipuAiService:
             )
             
             logger.info("成功接收到API响应")
-            return response.choices[0].message
+            
+            # 获取消息对象
+            message = response.choices[0].message
+            
+            # 如果有content属性，清理特殊标记
+            if hasattr(message, "content"):
+                message.content = self._clean_special_tags(message.content)
+                
+            return message
             
         except Exception as e:
             logger.error(f"调用智谱AI API时出错: {str(e)}")

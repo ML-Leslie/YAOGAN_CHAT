@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import os
 
 from app.core.config import API_PREFIX, CORS_ORIGINS, UPLOAD_FOLDER
@@ -28,6 +29,9 @@ app.include_router(api_router, prefix=API_PREFIX)
 
 # 创建上传文件夹
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# 挂载静态文件服务，用于访问上传的图像
+app.mount(f"{API_PREFIX}/uploads", StaticFiles(directory=UPLOAD_FOLDER), name="uploads")
 
 @app.get("/")
 async def root():
