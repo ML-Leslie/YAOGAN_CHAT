@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Sidebar.css';
 
-const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, user }) => {
+const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, user }) => {
   // 默认状态为折叠
   const [collapsed, setCollapsed] = useState(false);
   // 默认未固定
@@ -64,10 +64,26 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, user }) => {
             <li 
               key={chat.id} 
               className={`chat-item ${activeChat?.id === chat.id ? 'active' : ''}`}
-              onClick={() => onChatSelect(chat.id)}
             >
-              <div className="chat-item-title">{chat.title || '新对话'}</div>
-              <div className="chat-item-date">{formatDate(chat.lastUpdated)}</div>
+              <div 
+                className="chat-item-content" 
+                onClick={() => onChatSelect(chat.id)}
+              >
+                <div className="chat-item-title">{chat.title || '新对话'}</div>
+                <div className="chat-item-date">{formatDate(chat.lastUpdated)}</div>
+              </div>
+              <button 
+                className="delete-chat-button" 
+                title="删除此会话"
+                onClick={(e) => {
+                  e.stopPropagation(); // 阻止点击事件冒泡
+                  if (window.confirm('确定要删除这个会话吗？此操作不可撤销。')) {
+                    onDeleteChat && onDeleteChat(chat.id);
+                  }
+                }}
+              >
+                <span className="delete-icon">×</span>
+              </button>
             </li>
           ))}
           

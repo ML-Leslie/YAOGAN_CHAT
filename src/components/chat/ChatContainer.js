@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import FunctionButtons from './FunctionButtons';
 import { uploadAndAnalyzeImage, pollTaskResult, getChatMessages, processTextMessage } from '../../services/api';
 import './ChatContainer.css';
+import './FunctionButtons.css';
 
 // API基础URL - 用于构建图片完整URL
 const API_BASE_URL = 'http://localhost:8000';
@@ -331,21 +331,29 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
       
       <div className="input-container">
         <div className="function-controls">
-          <FunctionButtons onFunctionSelect={onFunctionSelect} />
-          <button 
-            className="upload-image-button" 
-            onClick={handleUploadButtonClick}
-            title="上传遥感图像"
-          >
-            📁 上传图像
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef}
-            style={{ display: 'none' }} 
-            accept="image/*"
-            onChange={handleImageUpload}
-          />
+          {/* 功能按钮组 */}
+          <div className="function-buttons">
+            <button
+              className="function-button"
+              onClick={() => onFunctionSelect('canvas')}
+            >
+              画布展示
+            </button>
+            <button 
+              className="function-button" 
+              onClick={handleUploadButtonClick}
+              title="上传遥感图像"
+            >
+              上传图像
+            </button>
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              style={{ display: 'none' }} 
+              accept="image/*"
+              onChange={handleImageUpload}
+            />
+          </div>
         </div>
         <ChatInput 
           onSendMessage={handleSendMessage} 

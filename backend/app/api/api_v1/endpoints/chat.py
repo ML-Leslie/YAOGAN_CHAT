@@ -97,6 +97,30 @@ async def process_text_message(
             "status": "error",
             "message": "聊天中没有上传的图像"
         }
+        
+    # 验证图像文件是否存在
+    import os
+    from app.core.config import UPLOAD_FOLDER
+    
+    # 从路径中提取文件名
+    image_filename = os.path.basename(image_path.replace("/api/uploads/", ""))
+    local_image_path = os.path.join(UPLOAD_FOLDER, image_filename)
+    
+    if not os.path.isfile(local_image_path):
+        # 图像文件不存在，返回错误
+        error_msg = "历史图像文件已不可访问，请重新上传图像"
+        MessageService.create_message(
+            db=db,
+            chat_id=chat_id,
+            text=error_msg,
+            sender="ai",
+            error=True
+        )
+        
+        return {
+            "status": "error",
+            "message": error_msg
+        }
     
     # 添加处理中消息
     processing_message = MessageService.create_message(
@@ -107,13 +131,28 @@ async def process_text_message(
     )
     
     try:
-        # 调用智谱AI分析
-        # 这里我们传递图像URL而不是base64，因为我们已经有了之前上传的图像
-        result = await zhipuai_service.analyze_image(
-            image_url=f"http://localhost:8000{image_path.replace('/api', '')}",
-            prompt=prompt,
-            context_messages=context_messages
-        )
+        # 尝试使用base64编码图像而不是URL，这样可以更好地控制图像格式
+        import base64
+        
+        try:
+            # 读取图像文件并转换为base64
+            with open(local_image_path, "rb") as image_file:
+                image_base64 = base64.b64encode(image_file.read()).decode('utf-8')
+            
+            # 使用base64调用API
+            result = await zhipuai_service.analyze_image(
+                image_base64=image_base64,
+                prompt=prompt,
+                context_messages=context_messages
+            )
+        except Exception as img_error:
+            # 如果base64方式失败，回退到URL方式尝试
+            image_url = f"http://localhost:8000{image_path.replace('/api', '')}"
+            result = await zhipuai_service.analyze_image(
+                image_url=image_url,
+                prompt=prompt,
+                context_messages=context_messages
+            )
         
         # 处理结果
         if hasattr(result, "content"):
@@ -150,11 +189,18 @@ async def process_text_message(
         # 删除处理中消息
         db.delete(processing_message)
         
+        error_message = str(e)
+        # 针对特定错误类型给出更友好的提示
+        if "图片输入格式/解析错误" in error_message:
+            user_friendly_message = "历史图像可能已过期或格式不兼容，请重新上传图像"
+        else:
+            user_friendly_message = f"处理消息时出错: {error_message}"
+        
         # 添加错误消息
         MessageService.create_message(
             db=db,
             chat_id=chat_id,
-            text=f"处理消息时出错: {str(e)}",
+            text=user_friendly_message,
             sender="ai",
             error=True
         )
@@ -163,5 +209,6 @@ async def process_text_message(
         
         return {
             "status": "error",
-            "message": str(e)
+            "message": user_friendly_message,
+            "original_error": error_message
         }

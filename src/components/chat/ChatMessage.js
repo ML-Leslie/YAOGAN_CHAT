@@ -9,13 +9,6 @@ const ChatMessage = ({ message }) => {
   const isUser = sender === 'user';
   const isSystem = sender === 'system';
   
-  // 确保时间戳被正确处理
-  const messageTime = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
-  const formattedTime = new Intl.DateTimeFormat('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(messageTime);
-  
   // 获取头像内容
   const getAvatar = () => {
     if (isUser) return <div className="user-avatar">U</div>;
@@ -87,8 +80,6 @@ const ChatMessage = ({ message }) => {
             )}
           </div>
         )}
-        
-        <div className="message-timestamp">{formattedTime}</div>
       </div>
     </div>
   );

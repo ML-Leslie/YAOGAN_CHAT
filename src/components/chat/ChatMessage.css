@@ -152,13 +152,6 @@
   word-break: break-word;
 }
 
-.message-timestamp {
-  font-size: 11px;
-  color: #999;
-  margin-top: 5px;
-  text-align: right;
-}
-
 @keyframes message-appear {
   from { 
     opacity: 0;
@@ -170,25 +163,10 @@
   }
 }
 
-/* 添加上传图像按钮样式 */
+/* 功能按钮控制区样式 */
 .function-controls {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
-}
-
-.upload-image-button {
-  padding: 8px 12px;
-  background-color: #f0f2f5;
-  border: none;
-  border-radius: 18px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  transition: background-color 0.2s;
-}
-
-.upload-image-button:hover {
-  background-color: #e4e6e8;
 }

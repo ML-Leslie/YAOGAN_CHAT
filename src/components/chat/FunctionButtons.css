@@ -37,3 +37,17 @@
   color: #1a73e8;
   border-color: #d2e3fc;
 }
+
+/* 为确保功能按钮和上传按钮样式统一 */
+.function-controls .function-button {
+  padding: 12px 20px;
+  background-color: #f8f9fa;
+  border: 1px solid #dadce0;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #202124;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}

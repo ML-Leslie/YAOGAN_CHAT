@@ -113,6 +113,33 @@ function App() {
       console.error('创建新聊天失败:', error);
     }
   }, []);
+  
+  // 删除聊天会话
+  const handleDeleteChat = useCallback(async (chatId) => {
+    try {
+      // 导入删除聊天功能
+      const { deleteChat } = require('./services/api');
+      await deleteChat(chatId);
+      
+      // 更新本地状态
+      setChats(prev => prev.filter(chat => chat.id !== chatId));
+      
+      // 如果删除的是当前活跃的聊天，则选择列表中的第一个聊天或创建一个新的
+      if (activeChat?.id === chatId) {
+        // 过滤掉被删除的聊天后选择第一个
+        const remainingChats = chats.filter(chat => chat.id !== chatId);
+        if (remainingChats.length > 0) {
+          setActiveChat(remainingChats[0]);
+        } else {
+          // 如果没有剩余的聊天，创建一个新的
+          handleCreateNewChat();
+        }
+      }
+    } catch (error) {
+      console.error('删除聊天失败:', error);
+      alert('删除聊天失败: ' + error.message);
+    }
+  }, [activeChat, chats, handleCreateNewChat]);
 
   // 当认证状态改变时加载聊天
   useEffect(() => {
@@ -172,6 +199,7 @@ function App() {
             activeChat={activeChat}
             onChatSelect={handleChatSelect}
             onNewChat={handleCreateNewChat}
+            onDeleteChat={handleDeleteChat}
             user={user}
           />
         </div>

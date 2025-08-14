@@ -202,6 +202,37 @@ export const getChatMessages = async (chatId) => {
 };
 
 /**
+ * 删除聊天会话
+ * @param {string} chatId - 聊天ID
+ * @returns {Promise<Object>} - 删除结果
+ */
+export const deleteChat = async (chatId) => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/chats/${chatId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || '删除聊天失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('删除聊天时出错:', error);
+    throw error;
+  }
+};
+
+/**
  * 上传并分析遥感图像
  * @param {File} imageFile - 要分析的图像文件
  * @param {string} prompt - 分析提示或问题
