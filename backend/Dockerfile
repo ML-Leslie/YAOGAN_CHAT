@@ -2,15 +2,15 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# 安装依赖
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制所有应用文件
+
+RUN apt update && \
+    apt install -y --no-install-recommends gdal-bin libgdal-dev build-essential
+
 COPY . .
 
-# 创建上传文件夹
-RUN mkdir -p uploads
+RUN pip install --no-cache-dir -r requirements.txt && \
+    mkdir -p uploads
 
 # 暴露端口
 EXPOSE 8000

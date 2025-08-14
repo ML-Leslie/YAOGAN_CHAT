@@ -1,55 +1,78 @@
+:root {
+  --sb-bg: #f7f7f8;
+  --sb-border: rgba(0,0,0,0.06);
+  --sb-hover: #ececf1;
+  --sb-active: #ececf1;
+  --text: #1f2328;
+  --text-weak: #6b7280;
+}
+
 .sidebar {
-  width: 280px;
-  min-width: 70px;
+  width: 288px;
+  min-width: 72px;
   height: 100%;
-  background-color: #f9f9fa;
+  background-color: var(--sb-bg);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(0, 0, 0, 0.05); /* 降低边框可见度 */
-  transition: all 0.3s ease;
+  align-items: stretch;
+  border-right: 1px solid var(--sb-border);
+  transition: width 0.25s ease;
   position: relative;
   overflow: hidden;
-  z-index: 100; /* 确保侧边栏在最上层 */
+  z-index: 100;
+  box-sizing: border-box;
+  padding: 8px;
 }
 
 .sidebar.collapsed {
-  width: 70px;
+  width: 72px;
 }
 
-.sidebar.pinned {
-  /* 固定状态下的特殊样式 */
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+/* 顶部品牌区：简洁、无渐变 */
+.app-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 6px 4px 6px;
+  background: transparent;
+  border-radius: 8px;
+  box-shadow: none;
 }
 
-/* 固定按钮样式 */
+.app-name-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sidebar.collapsed .app-name {
+  display: none;
+}
+
+/* 固定按钮更轻量 */
 .pin-sidebar {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  width: 40px;
-  height: 40px;
-  background-color: transparent;
+  width: 28px;
+  height: 28px;
+  background: transparent;
   border: none;
-  border-radius: 50%;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-  transition: all 0.2s;
-  opacity: 1;
-}
-
-.sidebar.collapsed .pin-sidebar {
-  opacity: 0;
-}
-
-.sidebar:hover .pin-sidebar {
-  opacity: 1;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+  opacity: 0.9;
 }
 
 .pin-sidebar:hover {
-  background-color: #e8eaed;
+  background-color: var(--sb-hover);
 }
 
 .pin-sidebar.active {
@@ -57,255 +80,176 @@
 }
 
 .pin-icon {
-  width: 20px;
-  height: 20px;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path fill="%235f6368" d="M640-480v-280h40v-80H280v80h40v280l-120 120v40h240v200h80v-200h240v-40l-120-120Zm-280 0v-280h240v280l80 80H280l80-80Z"/></svg>');
+  width: 18px;
+  height: 18px;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
   transition: transform 0.2s;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24\" viewBox=\"0 -960 960 960\" width=\"24\"><path fill=\"%231a73e8\" d=\"M640-480v-280h40v-80H280v80h40v280l-120 120v40h240v200h80v-200h240v-40l-120-120Zm-280 0v-280h240v280l80 80H280l80-80Z\"/></svg>");
 }
 
-.pin-sidebar.active .pin-icon {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path fill="%231a73e8" d="M640-480v-280h40v-80H280v80h40v280l-120 120v40h240v200h80v-200h240v-40l-120-120Zm-280 0v-280h240v280l80 80H280l80-80Z"/></svg>');
-}
-
-.sidebar-header {
-  padding: 16px;
-  padding-top: 64px; /* 为固定按钮留出空间 */
-  display: flex;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.sidebar.collapsed .sidebar-header {
-  padding: 8px;
-  padding-top: 64px;
-}
-
+/* 顶部动作：新建会话 -> 行项目风格 */
 .new-chat-button {
   width: 100%;
-  max-width: 220px;
-  padding: 12px;
-  background-color: #f1f3f4;
-  color: #202124;
-  border: 1px solid #dadce0;
-  border-radius: 24px;
+  height: 36px;
+  margin: 6px 0 20px 0;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 500;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.sidebar.collapsed .new-chat-button {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  padding: 0;
-  margin: 0 auto;
-  background-color: #f1f3f4;
-}
-
-.sidebar.collapsed .button-text {
-  display: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.1s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-align: left;
 }
 
 .new-chat-button:hover {
-  background-color: #e0e3e8;
+  background-color: var(--sb-hover);
+}
+
+.sidebar.collapsed .new-chat-button {
+  justify-content: center;
+  padding: 0;
+  margin: 6px 0 8px 0;
+  height: 40px;
 }
 
 .button-icon {
-  margin-right: 8px;
-  font-size: 18px;
-  display: flex;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-right: 0; /* 行项目风格不需要额外右距 */
 }
 
-.sidebar.collapsed .button-icon {
-  margin-right: 0;
-}
-
-/* 按钮图标与文字的间距 */
+/* 使用现有的 + 号 SVG */
 .new-chat-button .button-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path fill="%23202124" d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>');
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18"><path fill="%231f2328" d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>');
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
 }
 
-.sidebar.collapsed .new-chat-button .button-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.chat-history {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 16px 16px 16px;
-  transition: opacity 0.3s ease;
-}
-
-.sidebar.collapsed .chat-history {
-  opacity: 0;
-  visibility: hidden;
-}
-
-/* 用户信息区域 */
-.user-profile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-top: none;
-  margin-top: auto;
-  transition: all 0.3s ease;
-  height: 60px;
-  box-sizing: border-box;
-  color: white;
-  width: 100%;
-  padding: 0;
-}
-
-.user-profile-inner {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 0 16px;
-}
-
-.sidebar.collapsed .user-profile {
-  justify-content: center;
-  height: 60px;
-}
-
-.sidebar.collapsed .user-profile-inner {
-  justify-content: center;
-  padding: 0;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%; /* 确保是圆形 */
-  background-color: rgba(255, 255, 255, 0.2); /* 半透明白色背景 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-weight: 500;
-  color: white;
-  transition: all 0.3s ease;
-  font-size: 14px;
-  /* 防止头像被拉伸 */
-  min-width: 40px;
-  max-width: 40px;
-  min-height: 40px;
-  max-height: 40px;
-  margin-right: 12px; /* 与用户名之间的间距 */
-}
-
-.sidebar.collapsed .user-avatar {
-  margin-right: 0;
-  width: 40px; /* 保持大小不变 */
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
-  transition: all 0.3s ease;
-  opacity: 1;
-}
-
-.sidebar.collapsed .user-info {
-  width: 0;
-  opacity: 0;
-  visibility: hidden;
+.sidebar.collapsed .button-text {
   display: none;
 }
 
-.user-name {
-  font-weight: 500;
-  color: black; /* 黑色文字 */
-  font-size: 14px;
+/* 会话历史：标题更接近“分组标题”风格 */
+.chat-history {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  transition: opacity 0.2s ease;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
-/* 删除不需要的设置按钮样式 */
+.sidebar.collapsed .chat-history {
+  opacity: 1; /* 折叠时仍保留图标点击 */
+  visibility: visible;
+}
 
 .history-title {
-  color: #5f6368;
-  font-size: 14px;
-  margin: 20px 0 12px 0;
-  font-weight: 500;
-  padding-left: 10px;
-  transition: opacity 0.2s ease;
+  color: var(--text-weak);
+  font-size: 12px;
+  margin: 6px 6px 6px 6px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.sidebar.collapsed .history-title {
+  display: none;
 }
 
 .chat-list {
   list-style: none;
-  padding: 0;
+  padding: 2px;
   margin: 0;
+  overflow-y: auto;
+  flex: 1;
+  width: 100%;
 }
 
+.chat-list::-webkit-scrollbar {
+  width: 8px;
+}
+.chat-list::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.08);
+  border-radius: 8px;
+}
+.chat-list:hover::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.16);
+}
+
+/* 列表项：圆角卡片、悬停浅灰、激活浅蓝 */
 .chat-item {
-  padding: 12px 16px;
-  border-radius: 0;
-  margin-bottom: 1px;
-  transition: all 0.2s;
-  border-left: 3px solid transparent;
+  padding: 8px 0px;
+  border-radius: 8px;
+  margin: 2px 4px;
+  transition: background-color 0.12s ease, color 0.12s ease;
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
   align-items: center;
-}
-
-.chat-item-content {
-  flex: 1;
-  cursor: pointer;
+  border-left: none; /* 去掉左侧色条 */
 }
 
 .chat-item:hover {
-  background-color: #f1f3f4;
+  background-color: var(--sb-hover);
 }
 
 .chat-item.active {
-  background-color: #e8f0fe;
-  border-left-color: #1a73e8;
+  background-color: var(--sb-active);
+}
+
+.chat-item-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  width: 100%;
+  padding: 0 10px;
 }
 
 .chat-item-title {
-  font-weight: 500;
-  margin-bottom: 4px;
+  font-weight: 600;
+  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text);
+  font-size: 14px;
 }
 
 .chat-item-date {
   font-size: 12px;
-  color: #888;
+  color: var(--text-weak);
 }
 
-.no-chats-message {
-  color: #888;
-  text-align: center;
-  padding: 20px 0;
-  font-style: italic;
+.sidebar.collapsed .chat-item {
+  justify-content: center;
+  padding: 10px;
+}
+.sidebar.collapsed .chat-item-title,
+.sidebar.collapsed .chat-item-date {
+  display: none;
 }
 
+/* 删除按钮：仅悬停显现，风格更轻 */
 .delete-chat-button {
-  background: none;
+  background: transparent;
   border: none;
-  color: #888;
+  color: var(--text-weak);
   font-size: 18px;
   cursor: pointer;
   padding: 0;
@@ -314,20 +258,98 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 6px;
   opacity: 0;
-  transition: all 0.2s;
-}
-
-.delete-chat-button:hover {
-  background-color: #e0e0e0;
-  color: #333;
+  transition: background-color 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+  flex-shrink: 0;
 }
 
 .chat-item:hover .delete-chat-button {
   opacity: 1;
 }
 
+.delete-chat-button:hover {
+  background-color: var(--sb-hover);
+  color: #444;
+}
+
 .delete-icon {
-  line-height: 1;
+  display: block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;     /* 垂直居中 */
+  text-align: center;    /* 水平居中 */
+  flex: 0 0 auto;
+}
+
+/* 底部用户信息：简洁 */
+.user-profile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  height: 56px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 6px;
+  color: var(--text);
+  border-top: 1px solid var(--sb-border);
+  background: transparent;
+}
+
+.user-profile-inner {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+}
+
+.sidebar.collapsed .user-profile-inner {
+  justify-content: center;
+  gap: 0;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #111;
+  font-size: 13px;
+  margin-right: 0;
+}
+
+.sidebar.collapsed .user-avatar {
+  margin-right: 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar.collapsed .user-info {
+  display: none;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* 兼容：移除不使用的旧样式影响 */
+.app-title,
+.new-chat-button,
+.chat-history,
+.user-profile {
+  box-shadow: none;
 }

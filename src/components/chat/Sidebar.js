@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Sidebar.css';
+import AppHeader from './AppHeader';
 
-const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, user }) => {
+const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, user,   setUser,setIsAuthenticated, setChats, setActiveChat }) => {
   // 默认状态为折叠
   const [collapsed, setCollapsed] = useState(false);
   // 默认未固定
   const [isPinned, setIsPinned] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const sidebarRef = useRef(null);
-
   // 切换侧边栏固定状态
   const togglePin = (e) => {
     e.stopPropagation(); // 防止事件冒泡
@@ -26,7 +26,15 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, use
   const handleMouseLeave = () => {
     setIsHovered(false);
   };
-
+  // 处理退出
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user_info');
+    setUser(null);
+    setIsAuthenticated(false);
+    setChats([]);
+    setActiveChat(null);
+  };
   // 根据鼠标悬停状态和固定状态决定侧边栏是否折叠
   useEffect(() => {
     if (!isPinned) {
@@ -41,22 +49,54 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, use
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* 固定按钮，放在侧边栏的左上角 */}
-      <button 
-        className={`pin-sidebar ${isPinned ? 'active' : ''}`} 
-        onClick={togglePin}
-        title={isPinned ? "取消固定" : "固定侧边栏"}
-      >
-        <div className="pin-icon"></div>
-      </button>
-      
-      <div className="sidebar-header">
-        <button className="new-chat-button" onClick={onNewChat}>
-          <span className="button-icon"></span>
-          <span className="button-text">新建会话</span>
+      <div className="app-title">
+        <div className="app-name-bar">
+          <svg 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              d="M12 2L2 7L12 12L22 7L12 2Z" 
+              stroke="black" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              fill="rgba(255,255,255,0.2)"
+            />
+            <path 
+              d="M2 17L12 22L22 17" 
+              stroke="black" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+            <path 
+              d="M2 12L12 17L22 12" 
+              stroke="black" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+          <div className="app-name">YAOGAN</div>
+        </div>
+        <button 
+          className={`pin-sidebar ${isPinned ? 'active' : ''}`} 
+          onClick={togglePin}
+          title={isPinned ? "取消固定" : "固定侧边栏"}
+        >
+          <div className="pin-icon"></div>
         </button>
       </div>
-      
+
+      <button className="new-chat-button" onClick={onNewChat}>
+        <span className="button-icon"></span>
+        <span className="button-text">新建会话</span>
+      </button>
+
       <div className="chat-history">
         <h3 className="history-title">历史会话</h3>
         <ul className="chat-list">
@@ -93,7 +133,6 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, use
         </ul>
       </div>
       
-      {/* 用户信息区域 - 头像居左，名称居右 */}
       <div className="user-profile">
         <div className="user-profile-inner">
           <div className="user-avatar">

@@ -3,7 +3,6 @@ import './App.css';
 import Sidebar from './components/chat/Sidebar';
 import ChatContainer from './components/chat/ChatContainer';
 import CanvasDisplay from './components/chat/CanvasDisplay';
-import AppHeader from './components/chat/AppHeader';
 import { login, getUserChats, createNewChat } from './services/api';
 import './components/chat/ChatLayout.css';
 
@@ -64,15 +63,7 @@ function App() {
     }
   };
 
-  // 处理退出
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user_info');
-    setUser(null);
-    setIsAuthenticated(false);
-    setChats([]);
-    setActiveChat(null);
-  };
+
 
   // 加载用户的聊天历史
   const loadUserChats = async () => {
@@ -193,7 +184,6 @@ function App() {
     <div className="App">
       <div className="chat-layout">
         <div className="sidebar-container">
-          <AppHeader user={user} onLogout={handleLogout} />
           <Sidebar 
             chats={chats}
             activeChat={activeChat}
@@ -201,6 +191,10 @@ function App() {
             onNewChat={handleCreateNewChat}
             onDeleteChat={handleDeleteChat}
             user={user}
+            setUser={setUser}
+            setIsAuthenticated={setIsAuthenticated}
+            setChats={setChats}
+            setActiveChat={setActiveChat}
           />
         </div>
         
