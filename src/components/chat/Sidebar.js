@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './Sidebar.css';
 
 
-const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, user,   setUser,setIsAuthenticated, setChats, setActiveChat }) => {
+const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, user, setUser, setIsAuthenticated, setChats, setActiveChat, forceCollapsed }) => {
   // 默认状态为折叠
   const [collapsed, setCollapsed] = useState(false);
   // 默认未固定
@@ -37,10 +37,15 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, use
 //   };
   // 根据鼠标悬停状态和固定状态决定侧边栏是否折叠
   useEffect(() => {
-    if (!isPinned) {
+    if (forceCollapsed) {
+      // 如果强制折叠，则忽略其他状态直接折叠
+      setCollapsed(true);
+    } else if (!isPinned) {
       setCollapsed(!isHovered);
+    } else {
+      setCollapsed(false);
     }
-  }, [isHovered, isPinned]);
+  }, [isHovered, isPinned, forceCollapsed]);
 
   return (
     <div 
@@ -57,6 +62,7 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, use
             viewBox="0 0 24 24" 
             fill="none" 
             xmlns="http://www.w3.org/2000/svg"
+            className="app-logo"
           >
             <path 
               d="M12 2L2 7L12 12L22 7L12 2Z" 
@@ -109,21 +115,25 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, use
                 className="chat-item-content" 
                 onClick={() => onChatSelect(chat.id)}
               >
-                <div className="chat-item-title">{chat.title || '新对话'}</div>
-                <div className="chat-item-date">{formatDate(chat.lastUpdated)}</div>
+                <div className="chat-item-left">
+                  <div className="chat-item-title gradient-text">{chat.title || '新对话'}</div>
+                </div>
+                <div className="chat-item-right">
+                  <div className="chat-item-date">{formatDate(chat.lastUpdated)}</div>
+                  <button 
+                    className="delete-chat-button" 
+                    title="删除此会话"
+                    onClick={(e) => {
+                      e.stopPropagation(); // 阻止点击事件冒泡
+                      if (window.confirm('确定要删除这个会话吗？此操作不可撤销。')) {
+                        onDeleteChat && onDeleteChat(chat.id);
+                      }
+                    }}
+                  >
+                    <span className="delete-icon">×</span>
+                  </button>
+                </div>
               </div>
-              <button 
-                className="delete-chat-button" 
-                title="删除此会话"
-                onClick={(e) => {
-                  e.stopPropagation(); // 阻止点击事件冒泡
-                  if (window.confirm('确定要删除这个会话吗？此操作不可撤销。')) {
-                    onDeleteChat && onDeleteChat(chat.id);
-                  }
-                }}
-              >
-                <span className="delete-icon">×</span>
-              </button>
             </li>
           ))}
           

@@ -207,6 +207,38 @@ async def update_chat(
         "last_updated": updated_chat.last_updated.isoformat()
     }
 
+@router.put("/chats/{chat_id}/title", response_model=dict)
+async def update_chat_title(
+    chat_id: str,
+    title_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """更新聊天会话标题"""
+    # 验证聊天会话归属权
+    chat = ChatService.get_chat_by_id(db, chat_id)
+    if not chat or chat.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="聊天会话不存在"
+        )
+    
+    title = title_data.get("title", "")
+    if not title:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="标题不能为空"
+        )
+    
+    updated_chat = ChatService.update_chat_title(db, chat_id, title)
+    
+    return {
+        "id": updated_chat.id,
+        "title": updated_chat.title,
+        "created_at": updated_chat.created_at.isoformat(),
+        "last_updated": updated_chat.last_updated.isoformat()
+    }
+
 @router.delete("/chats/{chat_id}", response_model=dict)
 async def delete_chat(
     chat_id: str,

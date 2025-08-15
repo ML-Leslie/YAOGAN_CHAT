@@ -86,6 +86,19 @@ def process_image_task(task_id, image_path, prompt, task_type, chat_id=None):
             
             db.close()
         
+        # 检查任务是否已被取消
+        if redis_client.exists(f"task_cancel:{task_id}"):
+            logger.info(f"任务 {task_id} 已被用户取消，终止处理")
+            # 删除取消标记
+            redis_client.delete(f"task_cancel:{task_id}")
+            return {
+                "task_id": task_id,
+                "chat_id": chat_id,
+                "status": "canceled",
+                "result": "用户已取消任务",
+                "completed_at": time.time()
+            }
+        
         # 创建事件循环调用异步方法
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -94,7 +107,9 @@ def process_image_task(task_id, image_path, prompt, task_type, chat_id=None):
                 image_base64=image_base64, 
                 prompt=prompt, 
                 task_type=task_type, 
-                context_messages=context_messages if context_messages else None
+                context_messages=context_messages if context_messages else None,
+                task_id=task_id,  # 传递task_id用于检查取消
+                redis_client=redis_client  # 传递Redis客户端
             )
         )
         loop.close()
@@ -242,8 +257,9 @@ def process_image_task(task_id, image_path, prompt, task_type, chat_id=None):
             json.dumps(formatted_result)
         )
         
-        # 删除处理中标记
+        # 删除处理中标记和取消标记（如果有）
         redis_client.delete(f"task_processing:{task_id}")
+        redis_client.delete(f"task_cancel:{task_id}")
         
         logger.info(f"任务 {task_id} 完成并保存到Redis和数据库")
         return formatted_result
@@ -293,8 +309,9 @@ def process_image_task(task_id, image_path, prompt, task_type, chat_id=None):
             json.dumps(error_result)
         )
         
-        # 删除处理中标记
+        # 删除处理中标记和取消标记（如果有）
         redis_client.delete(f"task_processing:{task_id}")
+        redis_client.delete(f"task_cancel:{task_id}")
         
         logger.error(f"处理任务 {task_id} 时出错: {str(e)}")
         return error_result

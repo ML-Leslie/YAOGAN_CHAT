@@ -25,7 +25,7 @@
 }
 
 .sidebar.collapsed {
-  width: 72px;
+  width: 56px; /* 折叠后宽度适当减小 */
 }
 
 /* 顶部品牌区：简洁、无渐变 */
@@ -39,11 +39,25 @@
   box-shadow: none;
 }
 
+.sidebar.collapsed .app-title {
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.sidebar.collapsed .pin-sidebar {
+  display: none;
+}
+
 .app-name-bar {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 8px;
+  flex: 1;
+}
+
+.sidebar.collapsed .app-name-bar {
+  justify-content: center;
 }
 
 .app-name {
@@ -54,6 +68,12 @@
 
 .sidebar.collapsed .app-name {
   display: none;
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 固定按钮更轻量 */
@@ -113,10 +133,7 @@
 }
 
 .sidebar.collapsed .new-chat-button {
-  justify-content: center;
-  padding: 0;
-  margin: 6px 0 8px 0;
-  height: 40px;
+  display: none; /* 隐藏新建会话按钮 */
 }
 
 .button-icon {
@@ -152,8 +169,7 @@
 }
 
 .sidebar.collapsed .chat-history {
-  opacity: 1; /* 折叠时仍保留图标点击 */
-  visibility: visible;
+  display: none; /* 完全隐藏历史会话 */
 }
 
 .history-title {
@@ -221,6 +237,21 @@
   padding: 0 10px;
 }
 
+.chat-item-left {
+  flex: 1;
+  min-width: 0; /* 允许子元素压缩 */
+  margin-right: 8px;
+  overflow: hidden;
+}
+
+.chat-item-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0; /* 防止压缩 */
+}
+
 .chat-item-title {
   font-weight: 600;
   margin-bottom: 2px;
@@ -229,23 +260,53 @@
   text-overflow: ellipsis;
   color: var(--text);
   font-size: 14px;
+  position: relative;
+  width: 100%;
+}
+
+.gradient-text {
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+
+.gradient-text::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 100%;
+  background: linear-gradient(to right, rgba(247, 247, 248, 0), var(--sb-bg) 90%);
+  pointer-events: none;
+}
+
+.chat-item:hover .gradient-text::after {
+  background: linear-gradient(to right, rgba(236, 236, 241, 0), var(--sb-hover) 90%);
+}
+
+.chat-item.active .gradient-text::after {
+  background: linear-gradient(to right, rgba(236, 236, 241, 0), var(--sb-active) 90%);
 }
 
 .chat-item-date {
   font-size: 12px;
   color: var(--text-weak);
+  margin-right: 8px;
 }
 
 .sidebar.collapsed .chat-item {
   justify-content: center;
   padding: 10px;
 }
-.sidebar.collapsed .chat-item-title,
-.sidebar.collapsed .chat-item-date {
+.sidebar.collapsed .chat-item-left,
+.sidebar.collapsed .chat-item-right,
+.sidebar.collapsed .chat-item-date,
+.sidebar.collapsed .delete-chat-button {
   display: none;
 }
 
-/* 删除按钮：仅悬停显现，风格更轻 */
+/* 删除按钮：轻量级样式，始终可见 */
 .delete-chat-button {
   background: transparent;
   border: none;
@@ -259,13 +320,13 @@
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  opacity: 0;
+  opacity: 0.6; /* 默认状态下稍微透明 */
   transition: background-color 0.12s ease, color 0.12s ease, opacity 0.12s ease;
   flex-shrink: 0;
 }
 
 .chat-item:hover .delete-chat-button {
-  opacity: 1;
+  opacity: 1; /* 悬停时完全显示 */
 }
 
 .delete-chat-button:hover {
@@ -352,4 +413,47 @@
 .chat-history,
 .user-profile {
   box-shadow: none;
+}
+
+/* 响应式样式 */
+@media (max-width: 1024px) {
+  .sidebar {
+    transition: width 0.3s ease;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    min-width: 48px;
+  }
+  
+  .sidebar.collapsed {
+    width: 48px;
+  }
+  
+  .user-avatar {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    min-width: 44px;
+  }
+  
+  .sidebar.collapsed {
+    width: 44px;
+  }
+  
+  .user-avatar {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    font-size: 11px;
+  }
 }

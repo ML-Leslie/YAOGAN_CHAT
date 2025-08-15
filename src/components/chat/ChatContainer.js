@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import { uploadAndAnalyzeImage, pollTaskResult, getChatMessages, processTextMessage } from '../../services/api';
+import { uploadAndAnalyzeImage, pollTaskResult, getChatMessages, processTextMessage, cancelTask, updateChatTitle } from '../../services/api';
 import './ChatContainer.css';
 import './FunctionButtons.css';
 
@@ -16,6 +16,8 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const [imageUploaded, setImageUploaded] = useState(false); // 记录图像是否已上传
+  const [currentTaskId, setCurrentTaskId] = useState(null); // 当前正在处理的任务ID
+  const [isGenerating, setIsGenerating] = useState(false); // 是否正在生成回复
 
   useEffect(() => {
     // 加载当前活跃聊天的消息历史
@@ -147,8 +149,25 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
       setMarkObjectMode(false);
     }
     
+    // 检查是否是第一条消息，如果是则更新标题
+    const isFirstUserMessage = !messages.some(msg => msg.sender === 'user');
+    if (isFirstUserMessage && activeChat) {
+      try {
+        // 使用用户的第一条消息作为标题
+        await updateChatTitle(activeChat.id, text);
+        
+        // 更新全局聊天列表中的标题
+        if (window.updateChatTitle) {
+          window.updateChatTitle(activeChat.id, text);
+        }
+      } catch (error) {
+        console.error('更新聊天标题失败:', error);
+      }
+    }
+    
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
+    setIsGenerating(true);
     
     // 处理中消息ID (用于后续删除)
     let processingMessageId = null;
@@ -203,6 +222,9 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
           response = await uploadAndAnalyzeImage(currentImage, text, taskType, activeChat?.id);
           console.log('图像上传成功，获取任务ID:', response.task_id);
           
+          // 保存当前任务ID，用于取消操作
+          setCurrentTaskId(response.task_id);
+          
           // 轮询任务结果
           console.log('开始轮询任务结果...');
           const result = await pollTaskResult(
@@ -221,6 +243,9 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
               }
             }
           );
+          
+          // 清除当前任务ID
+          setCurrentTaskId(null);
           
           console.log('轮询完成，获取结果:', result);
           
@@ -343,16 +368,37 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
         setMessages(prev => prev.filter(msg => msg.id !== processingMessageId));
       }
       
-      // 添加错误消息
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        text: `抱歉，处理您的消息时出现了错误: ${error.message || JSON.stringify(error)}`,
-        sender: 'ai',
-        error: true,
-        timestamp: new Date()
-      }]);
+      // 检查是否是用户取消导致的错误
+      const errorMessage = error.message || JSON.stringify(error);
+      const isCanceled = errorMessage.includes('用户已取消') || errorMessage.includes('取消任务');
+      
+      // 添加错误消息，除非是被用户取消的
+      if (!isCanceled) {
+        setMessages(prev => [...prev, {
+          id: Date.now() + 1,
+          text: `抱歉，处理您的消息时出现了错误: ${errorMessage}`,
+          sender: 'ai',
+          error: true,
+          timestamp: new Date()
+        }]);
+      }
     } finally {
       setIsTyping(false);
+      setIsGenerating(false);
+      setCurrentTaskId(null);
+    }
+  };
+
+  // 取消生成回复
+  const handleCancelGeneration = async () => {
+    if (currentTaskId) {
+      try {
+        console.log(`正在取消任务: ${currentTaskId}`);
+        await cancelTask(currentTaskId);
+        console.log(`任务已取消: ${currentTaskId}`);
+      } catch (error) {
+        console.error('取消生成时出错:', error);
+      }
     }
   };
 
@@ -432,6 +478,8 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
           }
           markObjectMode={markObjectMode}
           onCancelMarkObject={() => setMarkObjectMode(false)}
+          isGenerating={isGenerating}
+          onCancelGeneration={handleCancelGeneration}
         />
       </div>
     </div>

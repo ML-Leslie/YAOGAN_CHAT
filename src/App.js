@@ -20,6 +20,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // 检查用户登录状态
   useEffect(() => {
@@ -49,6 +50,35 @@ function App() {
     checkAuth();
   }, []);
 
+  // 响应式监听窗口大小变化
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      // 当窗口宽度小于1024px时自动收起侧边栏，优先保留对话区域
+      if (width < 1024) {
+        setSidebarCollapsed(true);
+      } else {
+        setSidebarCollapsed(false);
+      }
+      
+      // 如果窗口太小，还要收起右侧边栏
+      if (width < 768 && showRightSidebar) {
+        setShowRightSidebar(false);
+      }
+    };
+
+    // 初始检查
+    handleResize();
+    
+    // 添加事件监听器
+    window.addEventListener('resize', handleResize);
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [showRightSidebar]);
+
   // 处理登录
   const handleLogin = async (username, password) => {
     try {
@@ -73,7 +103,7 @@ function App() {
         // 格式化聊天数据
         const formattedChats = userChats.map(chat => ({
           id: chat.id,
-          title: chat.title,
+          title: chat.title || '新对话',
           lastUpdated: new Date(chat.last_updated),
           lastMessage: chat.last_message
         }));
@@ -94,7 +124,7 @@ function App() {
       const newChat = await createNewChat('新对话');
       const formattedChat = {
         id: newChat.id,
-        title: newChat.title,
+        title: newChat.title || '新对话',
         lastUpdated: new Date(newChat.last_updated)
       };
       
@@ -138,6 +168,25 @@ function App() {
       loadUserChats();
     }
   }, [isAuthenticated]);
+  
+  // 添加全局函数，允许从ChatContainer中更新聊天标题
+  useEffect(() => {
+    // 全局函数，用于更新聊天标题
+    window.updateChatTitle = (chatId, newTitle) => {
+      setChats(prevChats => 
+        prevChats.map(chat => 
+          chat.id === chatId 
+            ? { ...chat, title: newTitle }
+            : chat
+        )
+      );
+    };
+    
+    return () => {
+      // 清理函数
+      delete window.updateChatTitle;
+    };
+  }, []);
 
   // 选择会话
   const handleChatSelect = (chatId) => {
@@ -184,7 +233,7 @@ function App() {
   return (
     <div className="App">
       <div className="chat-layout">
-        <div className="sidebar-container">
+        <div className={`sidebar-container ${sidebarCollapsed ? 'auto-collapsed' : ''}`}>
           <Sidebar 
             chats={chats}
             activeChat={activeChat}
@@ -196,6 +245,7 @@ function App() {
             setIsAuthenticated={setIsAuthenticated}
             setChats={setChats}
             setActiveChat={setActiveChat}
+            forceCollapsed={sidebarCollapsed}
           />
         </div>
         

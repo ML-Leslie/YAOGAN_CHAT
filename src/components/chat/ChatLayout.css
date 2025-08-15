@@ -96,20 +96,57 @@
 }
 
 /* 响应式调整 */
-@media (max-width: 768px) {
-  .chat-layout {
-    flex-direction: column;
+@media (max-width: 1200px) {
+  .right-sidebar.expanded {
+    width: 40%;
+    min-width: 300px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .sidebar-container.auto-collapsed .sidebar {
+    width: 56px;
   }
   
-  .sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 200px;
-    border-right: none;
-    border-bottom: 1px solid #e0e0e0;
+  .right-sidebar.expanded {
+    width: 50%;
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-layout {
+    flex-direction: row; /* 保持水平布局 */
+  }
+  
+  .sidebar-container {
+    z-index: 1000;
+  }
+  
+  .sidebar-container.auto-collapsed .sidebar {
+    width: 56px;
+  }
+  
+  .main-content {
+    flex: 1;
+    min-width: 0; /* 允许收缩 */
+  }
+  
+  .chat-area {
+    min-width: 250px; /* 确保对话区域有最小宽度 */
   }
   
   .right-sidebar {
-    display: none;
+    display: none; /* 小屏幕隐藏右侧边栏 */
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-container.auto-collapsed .sidebar {
+    width: 48px;
+  }
+  
+  .chat-area {
+    min-width: 200px;
   }
 }

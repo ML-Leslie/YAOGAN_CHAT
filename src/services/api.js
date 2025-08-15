@@ -365,6 +365,72 @@ export const processTextMessage = async (prompt, chatId, taskType = 'description
 };
 
 /**
+ * 取消正在处理中的任务
+ * @param {string} taskId - 任务ID
+ * @returns {Promise<Object>} - 取消结果
+ */
+export const cancelTask = async (taskId) => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/cancel/${taskId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || '取消任务失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('取消任务时出错:', error);
+    throw error;
+  }
+};
+
+/**
+ * 更新聊天标题
+ * @param {string} chatId - 聊天ID
+ * @param {string} title - 新的聊天标题
+ * @returns {Promise<Object>} - 更新结果
+ */
+export const updateChatTitle = async (chatId, title) => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/chats/${chatId}/title`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ title })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || '更新聊天标题失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('更新聊天标题时出错:', error);
+    throw error;
+  }
+};
+
+/**
  * 延迟函数
  * @param {number} ms - 延迟毫秒数 
  * @returns {Promise<void>}

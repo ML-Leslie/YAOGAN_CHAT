@@ -51,7 +51,7 @@ class ZhipuAiService:
         
         return cleaned_text
         
-    async def analyze_image(self, image_base64=None, image_url=None, prompt=None, task_type=None, model="glm-4.5v", context_messages=None):
+    async def analyze_image(self, image_base64=None, image_url=None, prompt=None, task_type=None, model="glm-4.5v", context_messages=None, task_id=None, redis_client=None):
         """
         调用智谱AI GLM-4.5v API分析图像
         
@@ -62,13 +62,15 @@ class ZhipuAiService:
             task_type: 任务类型，用于构建系统提示
             model: 使用的模型，默认为"glm-4.5v"
             context_messages: 对话上下文消息列表
+            task_id: 任务ID，用于检查任务是否被取消
+            redis_client: Redis客户端，用于检查取消标志
             
         Returns:
             API响应结果
         """
         # 根据任务类型构建不同的提示
         if task_type == "description":
-            system_prompt = "你是一个专业的遥感图像分析AI助手。请详细描述这张遥感图像中的内容，包括地形、建筑、植被等特征。"
+            system_prompt = "你是一个专业的遥感图像分析AI助手。请详细描述这张遥感图像中的内容，包括地形、建筑、植被等特征。（回答格式：markdown，并去除所有空行！）"
         elif task_type == "detection":
             system_prompt = """你是一个专业的遥感图像分析AI助手。用户要求你在遥感图像中定位特定的目标物体。
 
@@ -142,12 +144,57 @@ class ZhipuAiService:
         try:
             logger.info(f"发送请求到智谱AI {model} API")
             
-            # 调用API
-            response = self.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                thinking={"type": "enabled"}
-            )
+            # 检查是否支持stream模式，用于支持取消功能
+            stream_mode = task_id is not None and redis_client is not None
+            
+            if stream_mode:
+                # 使用流式响应，以便可以在中间检查取消
+                response = None
+                collected_content = ""
+                collected_thinking = ""
+                
+                stream = self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    thinking={"type": "enabled"},
+                    stream=True
+                )
+                
+                for chunk in stream:
+                    # 检查是否有取消信号
+                    if redis_client.exists(f"task_cancel:{task_id}"):
+                        logger.info(f"任务 {task_id} 已被用户取消，终止API调用")
+                        # 创建取消响应
+                        from types import SimpleNamespace
+                        response = SimpleNamespace()
+                        response.choices = [SimpleNamespace()]
+                        response.choices[0].message = SimpleNamespace()
+                        response.choices[0].message.content = collected_content + "\n\n[用户已取消生成]"
+                        response.choices[0].message.thinking = collected_thinking + "\n\n[用户已取消生成]"
+                        break
+                    
+                    # 收集内容和思考过程
+                    if hasattr(chunk.choices[0].delta, "content") and chunk.choices[0].delta.content:
+                        collected_content += chunk.choices[0].delta.content
+                    
+                    if hasattr(chunk.choices[0].delta, "thinking") and chunk.choices[0].delta.thinking:
+                        collected_thinking += chunk.choices[0].delta.thinking
+                
+                # 如果没有被取消，构建完整响应
+                if response is None:
+                    from types import SimpleNamespace
+                    response = SimpleNamespace()
+                    response.choices = [SimpleNamespace()]
+                    response.choices[0].message = SimpleNamespace()
+                    response.choices[0].message.content = collected_content
+                    response.choices[0].message.thinking = collected_thinking
+            else:
+                # 非流式模式，一次性获取响应
+                response = self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    thinking={"type": "enabled"}
+                )
             
             logger.info("成功接收到API响应")
             

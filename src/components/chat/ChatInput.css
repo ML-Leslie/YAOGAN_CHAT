@@ -26,6 +26,14 @@
   max-height: 150px;
   outline: none;
   font-family: 'Google Sans', Arial, sans-serif;
+  transition: all 0.3s ease;
+}
+
+.chat-input.disabled {
+  color: #9aa0a6;
+  font-style: italic;
+  background-color: #f8f9fa;
+  cursor: not-allowed;
 }
 
 /* 标记物体标签样式 */
@@ -100,4 +108,21 @@
 .send-button svg {
   width: 20px;
   height: 20px;
+}
+
+.send-button.cancel-button {
+  background-color: #f44336;
+  transition: all 0.3s ease;
+  animation: pulse 1.5s infinite;
+}
+
+.send-button.cancel-button:hover {
+  background-color: #d32f2f;
+  transform: scale(1.05);
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
 }
