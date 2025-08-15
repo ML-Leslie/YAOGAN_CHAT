@@ -329,9 +329,10 @@ export const checkHealth = async () => {
  * 处理文本消息（基于已有图像上下文）
  * @param {string} prompt - 用户提问
  * @param {string} chatId - 聊天ID
+ * @param {string} taskType - 任务类型（可选，默认为description，可以是mark_object表示标记物体）
  * @returns {Promise<Object>} - 处理结果
  */
-export const processTextMessage = async (prompt, chatId) => {
+export const processTextMessage = async (prompt, chatId, taskType = 'description') => {
   try {
     const token = getToken();
     if (!token) {
@@ -346,7 +347,8 @@ export const processTextMessage = async (prompt, chatId) => {
       },
       body: JSON.stringify({
         prompt,
-        chat_id: chatId
+        chat_id: chatId,
+        task_type: taskType
       })
     });
 
@@ -380,7 +382,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 export const pollTaskResult = async (
   taskId,
   interval = 3000,
-  maxAttempts = 60,
+  maxAttempts = 120,
   onProgress = null
 ) => {
   let attempts = 0;

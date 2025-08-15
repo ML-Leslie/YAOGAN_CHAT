@@ -24,7 +24,8 @@ async def process_text_message(
     ```
     {
       "prompt": "问题文本",
-      "chat_id": "聊天会话ID"
+      "chat_id": "聊天会话ID",
+      "task_type": "description" // 可选，可以是"mark_object"表示标记物体
     }
     ```
     """
@@ -42,6 +43,7 @@ async def process_text_message(
     
     prompt = data["prompt"]
     chat_id = data["chat_id"]
+    task_type = data.get("task_type", "description")
     
     # 验证chat_id是否有效
     chat = ChatService.get_chat_by_id(db, chat_id)
@@ -134,6 +136,11 @@ async def process_text_message(
         # 尝试使用base64编码图像而不是URL，这样可以更好地控制图像格式
         import base64
         
+        # 根据task_type设置不同的任务类型
+        api_task_type = task_type
+        if task_type == "mark_object":
+            api_task_type = "detection"
+        
         try:
             # 读取图像文件并转换为base64
             with open(local_image_path, "rb") as image_file:
@@ -143,6 +150,7 @@ async def process_text_message(
             result = await zhipuai_service.analyze_image(
                 image_base64=image_base64,
                 prompt=prompt,
+                task_type=api_task_type,
                 context_messages=context_messages
             )
         except Exception as img_error:
@@ -151,6 +159,7 @@ async def process_text_message(
             result = await zhipuai_service.analyze_image(
                 image_url=image_url,
                 prompt=prompt,
+                task_type=api_task_type,
                 context_messages=context_messages
             )
         
@@ -167,14 +176,95 @@ async def process_text_message(
         # 再次确认内容已经被清理（以防漏网之鱼）
         if content and hasattr(zhipuai_service, "_clean_special_tags"):
             content = zhipuai_service._clean_special_tags(content)
-            
+        
+        # 提取对象坐标（如果是标记物体任务）
+        object_coordinates = None
+        if task_type == "mark_object":
+            try:
+                # 尝试从结果中提取坐标信息
+                import re
+                import json
+                
+                # 首先尝试提取整个回复作为JSON
+                try:
+                    full_json = json.loads(content)
+                    # 检查是否是有效的坐标格式
+                    if isinstance(full_json, dict) and ('bbox' in full_json or 
+                            ('x' in full_json and 'y' in full_json and 'width' in full_json and 'height' in full_json)):
+                        object_coordinates = content
+                    elif isinstance(full_json, list) and len(full_json) > 0:
+                        # 如果是列表，检查第一个元素是否有效
+                        if isinstance(full_json[0], dict) and ('bbox' in full_json[0] or 
+                                ('x' in full_json[0] and 'y' in full_json[0] and 'width' in full_json[0] and 'height' in full_json[0])):
+                            object_coordinates = content
+                        # 检查是否是坐标数组 [x1,y1,x2,y2]
+                        elif len(full_json) >= 4 and all(isinstance(item, (int, float)) for item in full_json[:4]):
+                            object_coordinates = content
+                except:
+                    # 不是有效JSON，尝试提取JSON部分
+                    
+                    # 提取JSON格式的坐标信息，优先查找包含bbox或坐标的JSON
+                    bbox_json_pattern = r'\{"label":[^}]+,"bbox":\[[^\]]+\]\}'
+                    bbox_matches = re.findall(bbox_json_pattern, content)
+                    
+                    if bbox_matches:
+                        # 找到了bbox格式的JSON
+                        object_coordinates = bbox_matches[0]
+                    else:
+                        # 尝试查找一般的JSON对象
+                        json_pattern = r'\{(?:[^{}]|(?:\{[^{}]*\}))*\}'
+                        json_matches = re.findall(json_pattern, content)
+                        
+                        # 也尝试寻找方括号格式的数组
+                        array_pattern = r'\[(?:[^\[\]]|\[[^\[\]]*\])*\]'
+                        array_matches = re.findall(array_pattern, content)
+                        
+                        if json_matches:
+                            for match in json_matches:
+                                try:
+                                    obj = json.loads(match)
+                                    if isinstance(obj, dict) and ('bbox' in obj or 
+                                        ('x' in obj and 'y' in obj and 'width' in obj and 'height' in obj) or
+                                        'label' in obj):
+                                        object_coordinates = match
+                                        break
+                                except:
+                                    pass
+                                    
+                        if not object_coordinates and array_matches:
+                            for match in array_matches:
+                                try:
+                                    arr = json.loads(match)
+                                    if isinstance(arr, list):
+                                        if len(arr) >= 4 and all(isinstance(item, (int, float)) for item in arr[:4]):
+                                            # 可能是坐标数组 [x1,y1,x2,y2]
+                                            object_coordinates = match
+                                            break
+                                        elif len(arr) > 0 and isinstance(arr[0], dict):
+                                            # 检查是否是对象列表
+                                            if ('bbox' in arr[0] or 
+                                                ('x' in arr[0] and 'y' in arr[0] and 'width' in arr[0] and 'height' in arr[0])):
+                                                object_coordinates = match
+                                                break
+                                except:
+                                    pass
+                
+                # 如果还是没找到，但是知道这是标记物体任务，创建一个默认坐标
+                if not object_coordinates:
+                    print(f"无法从内容中提取坐标信息: {content}")
+                    # 不创建默认坐标，让前端处理
+            except Exception as e:
+                print(f"提取坐标信息时出错: {e}")
+        
         # 添加AI回复
         MessageService.create_message(
             db=db,
             chat_id=chat_id,
             text=content,
             sender="ai",
-            thinking=result.thinking if hasattr(result, "thinking") else None
+            thinking=result.thinking if hasattr(result, "thinking") else None,
+            object_coordinates=object_coordinates,
+            is_object_mark=(task_type == "mark_object")
         )
         
         db.commit()
@@ -182,7 +272,9 @@ async def process_text_message(
         return {
             "status": "success",
             "result": content,
-            "thinking": result.thinking if hasattr(result, "thinking") else None
+            "thinking": result.thinking if hasattr(result, "thinking") else None,
+            "object_coordinates": object_coordinates,
+            "is_object_mark": (task_type == "mark_object")
         }
         
     except Exception as e:

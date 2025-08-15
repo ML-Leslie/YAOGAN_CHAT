@@ -174,7 +174,9 @@ async def get_chat_messages(
             "timestamp": msg.timestamp.isoformat(),
             "image_path": msg.image_path,  # 使用image_path一致的字段名
             "thinking": msg.thinking,
-            "error": msg.error
+            "error": msg.error,
+            "object_coordinates": msg.object_coordinates,
+            "is_object_mark": msg.is_object_mark
         }
         result.append(message_data)
     

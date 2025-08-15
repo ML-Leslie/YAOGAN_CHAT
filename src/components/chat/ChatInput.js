@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ChatInput.css';
 
-const ChatInput = ({ onSendMessage, placeholder = "向对话助手提问..." }) => {
+const ChatInput = ({ onSendMessage, placeholder = "向对话助手提问...", markObjectMode = false, onCancelMarkObject = () => {} }) => {
   const [message, setMessage] = useState('');
   const textareaRef = useRef(null);
 
@@ -32,9 +32,21 @@ const ChatInput = ({ onSendMessage, placeholder = "向对话助手提问..." }) 
   return (
     <div className="chat-input-wrapper">
       <form onSubmit={handleSubmit} className="chat-input-form">
+        {markObjectMode && (
+          <div className="mark-object-tag">
+            <span>标记物体</span>
+            <button
+              type="button"
+              className="cancel-mark-button"
+              onClick={onCancelMarkObject}
+            >
+              <span>×</span>
+            </button>
+          </div>
+        )}
         <textarea
           ref={textareaRef}
-          className="chat-input"
+          className={`chat-input ${markObjectMode ? 'with-mark-tag' : ''}`}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}

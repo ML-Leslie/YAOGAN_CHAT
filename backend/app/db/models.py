@@ -45,6 +45,8 @@ class Message(Base):
     image_path = Column(String, nullable=True)  # 可选的图像路径
     thinking = Column(Text, nullable=True)  # AI的思考过程
     error = Column(Boolean, default=False)  # 是否为错误消息
+    object_coordinates = Column(Text, nullable=True)  # 物体坐标信息（JSON格式）
+    is_object_mark = Column(Boolean, default=False)  # 是否为物体标记消息
     timestamp = Column(DateTime, default=datetime.utcnow)
     
     # 与Chat表的关系

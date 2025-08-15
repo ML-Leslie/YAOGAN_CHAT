@@ -150,7 +150,8 @@ function App() {
   // 处理功能选择
   const handleFunctionSelect = (functionId) => {
     if (functionId === 'canvas') {
-      setShowRightSidebar(true);
+      // 切换画布显示状态
+      setShowRightSidebar(prevState => !prevState);
     } else if (functionId === 'new-chat') {
       handleCreateNewChat();
     } else {
@@ -205,12 +206,12 @@ function App() {
               onFunctionSelect={handleFunctionSelect}
             />
           </div>
-          
           <div className={`right-sidebar ${showRightSidebar ? 'expanded' : ''}`}>
             <CanvasDisplay 
               width={canvasSize.width * 0.8} 
               height={canvasSize.height * 0.8}
               onClose={() => setShowRightSidebar(false)}
+              activeChat={activeChat}
             />
           </div>
         </div>

@@ -150,6 +150,32 @@
   word-break: break-word;
 }
 
+/* 画布查看按钮样式 */
+.canvas-view-section {
+  margin-top: 10px;
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+}
+
+.canvas-view-button {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.canvas-view-button:hover {
+  background-color: #0f5cce;
+}
+
+/* 画布切换状态 - 保持原有颜色 */
+
 @keyframes message-appear {
   from { 
     opacity: 0;

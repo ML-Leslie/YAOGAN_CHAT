@@ -107,13 +107,97 @@ def process_image_task(task_id, image_path, prompt, task_type, chat_id=None):
             content = result
         else:
             content = str(result)
-            
+        
+        # 提取对象坐标（如果是detection任务）
+        object_coordinates = None
+        is_object_mark = task_type == "detection"
+        
+        if is_object_mark:
+            try:
+                # 尝试从结果中提取坐标信息
+                import re
+                # 注意：不要重新导入json，使用文件顶部已导入的json模块
+                
+                # 首先尝试提取整个回复作为JSON
+                try:
+                    full_json = json.loads(content)
+                    # 检查是否是有效的坐标格式
+                    if isinstance(full_json, dict) and ('bbox' in full_json or 
+                            ('x' in full_json and 'y' in full_json and 'width' in full_json and 'height' in full_json)):
+                        object_coordinates = content
+                    elif isinstance(full_json, list) and len(full_json) > 0:
+                        # 如果是列表，检查第一个元素是否有效
+                        if isinstance(full_json[0], dict) and ('bbox' in full_json[0] or 
+                                ('x' in full_json[0] and 'y' in full_json[0] and 'width' in full_json[0] and 'height' in full_json[0])):
+                            object_coordinates = content
+                        # 检查是否是坐标数组 [x1,y1,x2,y2]
+                        elif len(full_json) >= 4 and all(isinstance(item, (int, float)) for item in full_json[:4]):
+                            object_coordinates = content
+                except:
+                    # 不是有效JSON，尝试提取JSON部分
+                    
+                    # 提取JSON格式的坐标信息，优先查找包含bbox或坐标的JSON
+                    bbox_json_pattern = r'\{"label":[^}]+,"bbox":\[[^\]]+\]\}'
+                    bbox_matches = re.findall(bbox_json_pattern, content)
+                    
+                    if bbox_matches:
+                        # 找到了bbox格式的JSON
+                        object_coordinates = bbox_matches[0]
+                    else:
+                        # 尝试查找一般的JSON对象
+                        json_pattern = r'\{(?:[^{}]|(?:\{[^{}]*\}))*\}'
+                        json_matches = re.findall(json_pattern, content)
+                        
+                        # 也尝试寻找方括号格式的数组
+                        array_pattern = r'\[(?:[^\[\]]|\[[^\[\]]*\])*\]'
+                        array_matches = re.findall(array_pattern, content)
+                        
+                        if json_matches:
+                            for match in json_matches:
+                                try:
+                                    obj = json.loads(match)
+                                    if isinstance(obj, dict) and ('bbox' in obj or 
+                                        ('x' in obj and 'y' in obj and 'width' in obj and 'height' in obj) or
+                                        'label' in obj):
+                                        object_coordinates = match
+                                        break
+                                except:
+                                    pass
+                                    
+                        if not object_coordinates and array_matches:
+                            for match in array_matches:
+                                try:
+                                    arr = json.loads(match)
+                                    if isinstance(arr, list):
+                                        if len(arr) >= 4 and all(isinstance(item, (int, float)) for item in arr[:4]):
+                                            # 可能是坐标数组 [x1,y1,x2,y2]
+                                            object_coordinates = match
+                                            break
+                                        elif len(arr) > 0 and isinstance(arr[0], dict):
+                                            # 检查是否是对象列表
+                                            if ('bbox' in arr[0] or 
+                                                ('x' in arr[0] and 'y' in arr[0] and 'width' in arr[0] and 'height' in arr[0])):
+                                                object_coordinates = match
+                                                break
+                                except:
+                                    pass
+                
+                # 如果还是没找到，但是知道这是标记物体任务，使用内容作为坐标
+                if not object_coordinates and is_object_mark:
+                    logger.warning(f"无法从内容中提取坐标信息: {content}")
+                    # 使用整个内容作为坐标
+                    object_coordinates = content
+            except Exception as e:
+                logger.error(f"提取坐标信息时出错: {e}")
+        
         formatted_result = {
             "task_id": task_id,
             "chat_id": chat_id,
             "status": "completed",
             "result": content,
             "completed_at": time.time(),
+            "is_object_mark": is_object_mark,
+            "object_coordinates": object_coordinates
         }
         
         # 如果有thinking内容，也返回
@@ -133,13 +217,15 @@ def process_image_task(task_id, image_path, prompt, task_type, chat_id=None):
                 for msg in processing_msgs:
                     db.delete(msg)
                 
-                # 添加AI回复消息
+                # 添加AI回复消息，包含标记和坐标信息
                 MessageService.create_message(
                     db=db,
                     chat_id=chat_id,
                     text=content,
                     sender="ai",
-                    thinking=formatted_result.get("thinking")
+                    thinking=formatted_result.get("thinking"),
+                    is_object_mark=formatted_result.get("is_object_mark", False),
+                    object_coordinates=formatted_result.get("object_coordinates")
                 )
                 
                 db.commit()

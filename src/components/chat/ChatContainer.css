@@ -53,3 +53,10 @@
   25% { transform: translateY(-5px); }
   50% { transform: translateY(0px); }
 }
+
+/* 动画定义保留，删除了不再使用的标记物体指示器相关样式 */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}

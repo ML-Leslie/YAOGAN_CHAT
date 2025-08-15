@@ -107,7 +107,9 @@ class MessageService:
         sender: str, 
         image_path: Optional[str] = None,
         thinking: Optional[str] = None,
-        error: bool = False
+        error: bool = False,
+        object_coordinates: Optional[str] = None,
+        is_object_mark: bool = False
     ) -> Message:
         """创建新消息"""
         message = Message(
@@ -118,6 +120,8 @@ class MessageService:
             image_path=image_path,
             thinking=thinking,
             error=error,
+            object_coordinates=object_coordinates,
+            is_object_mark=is_object_mark,
             timestamp=datetime.utcnow()
         )
         db.add(message)

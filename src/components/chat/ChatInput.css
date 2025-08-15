@@ -12,6 +12,7 @@
   border-radius: 24px;
   padding: 10px 16px;
   box-shadow: 0 1px 3px rgba(60, 64, 67, 0.1);
+  position: relative;
 }
 
 .chat-input {
@@ -25,6 +26,47 @@
   max-height: 150px;
   outline: none;
   font-family: 'Google Sans', Arial, sans-serif;
+}
+
+/* 标记物体标签样式 */
+.mark-object-tag {
+  display: flex;
+  align-items: center;
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 16px;
+  padding: 3px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: 10px;
+  white-space: nowrap;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.mark-object-tag .cancel-mark-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background-color: transparent;
+  color: #1a73e8;
+  margin-left: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.mark-object-tag .cancel-mark-button:hover {
+  background-color: #d2e3fc;
+}
+
+/* 当有标记物体标签时的输入框样式 */
+.chat-input.with-mark-tag {
+  padding-left: 5px;
 }
 
 .send-button {

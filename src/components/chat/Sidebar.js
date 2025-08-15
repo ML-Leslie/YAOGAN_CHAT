@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Sidebar.css';
-import AppHeader from './AppHeader';
+
 
 const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, user,   setUser,setIsAuthenticated, setChats, setActiveChat }) => {
   // 默认状态为折叠
@@ -27,14 +27,14 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, use
     setIsHovered(false);
   };
   // 处理退出
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user_info');
-    setUser(null);
-    setIsAuthenticated(false);
-    setChats([]);
-    setActiveChat(null);
-  };
+//   const handleLogout = () => {
+//     localStorage.removeItem('access_token');
+//     localStorage.removeItem('user_info');
+//     setUser(null);
+//     setIsAuthenticated(false);
+//     setChats([]);
+//     setActiveChat(null);
+//   };
   // 根据鼠标悬停状态和固定状态决定侧边栏是否折叠
   useEffect(() => {
     if (!isPinned) {

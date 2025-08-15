@@ -51,3 +51,46 @@
   transition: all 0.2s;
   white-space: nowrap;
 }
+
+/* 禁用状态的按钮样式 */
+.function-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f1f1f1;
+  color: #9aa0a6;
+  border-color: #e0e0e0;
+  box-shadow: none;
+}
+
+.function-button:disabled:hover {
+  background-color: #f1f1f1;
+  box-shadow: none;
+  transform: none;
+}
+
+/* 画布切换按钮样式 */
+.toggle-canvas-button {
+  position: relative;
+}
+
+/* 当画布打开时，修改按钮样式 */
+body:has(.right-sidebar.expanded) .toggle-canvas-button {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  border-color: #d2e3fc;
+}
+
+/* 兼容性写法 */
+.right-sidebar.expanded ~ .chat-area .toggle-canvas-button {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  border-color: #d2e3fc;
+}
+
+/* 当画布打开时的样式 */
+
+/* 画布查看按钮样式 */
+.canvas-view-button.toggle-canvas-button {
+  position: relative;
+  padding: 8px 16px;
+}
