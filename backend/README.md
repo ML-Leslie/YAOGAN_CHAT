@@ -156,36 +156,42 @@ backend/
 │   │       ├── api.py
 │   │       └── endpoints/
 │   │           ├── analyze.py
+│   │           ├── cancel.py
+│   │           ├── chat.py
 │   │           ├── health.py
-│   │           └── tasks.py
+│   │           ├── tasks.py
+│   │           ├── text_chat.py
+│   │           └── users.py
 │   ├── core/
-│   │   └── config.py
+│   │   ├── config.py
+│   │   ├── cors_config.py
+│   │   └── security.py
+│   ├── db/
+│   │   ├── database.py
+│   │   ├── init_db.py
+│   │   └── models.py
 │   ├── models/
-│   │   └── analyze.py
+│   │   ├── analyze.py
+│   │   └── user.py
 │   ├── services/
+│   │   ├── user_service.py
 │   │   └── zhipuai_service.py
 │   ├── utils/
 │   │   └── image_utils.py
-│   └── worker/
-│       ├── celery_app.py
-│       └── tasks.py
-├── uploads/
+│   ├── worker/
+│   │   ├── celery_app.py
+│   │   └── tasks.py
+│   └── uploads/
+│       └── ...
+├── migrations/
+│   └── add_object_mark_fields.py
 ├── .env
+├── Dockerfile
+├── init_db.py
 ├── main.py
+├── README.md
 ├── requirements.txt
-├── start.bat
-└── start.sh
+├── start.sh
+└── yaogan_chat.db
 ```
 
-## 与前端集成
-
-前端应当实现以下功能：
-
-1. 上传图像并发送分析请求
-2. 轮询任务状态直到完成
-3. 显示分析结果
-4. 根据任务类型渲染不同的结果（如描述文本、标注图像等）
-
-## 许可证
-
-[MIT License](LICENSE)

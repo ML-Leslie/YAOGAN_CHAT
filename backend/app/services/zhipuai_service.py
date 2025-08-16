@@ -70,7 +70,7 @@ class ZhipuAiService:
         """
         # 根据任务类型构建不同的提示
         if task_type == "description":
-            system_prompt = "你是一个专业的遥感图像分析AI助手。请详细描述这张遥感图像中的内容，包括地形、建筑、植被等特征。（回答格式：markdown，并去除所有空行！）"
+            system_prompt = "你是一个专业的遥感图像分析AI助手。请详细描述这张遥感图像中的内容，包括地形、建筑、植被等特征。"
         elif task_type == "detection":
             system_prompt = """你是一个专业的遥感图像分析AI助手。用户要求你在遥感图像中定位特定的目标物体。
 

@@ -14,6 +14,7 @@ from app.core.config import ZHIPUAI_API_KEY, UPLOAD_FOLDER, DATABASE_URL
 from app.services.zhipuai_service import zhipuai_service
 from app.services.user_service import MessageService, ChatService
 from app.db.models import Message, Chat
+from app.utils.image_utils import preprocess_image
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +132,6 @@ def process_image_task(task_id, image_path, prompt, task_type, chat_id=None):
             try:
                 # 尝试从结果中提取坐标信息
                 import re
-                # 注意：不要重新导入json，使用文件顶部已导入的json模块
                 
                 # 首先尝试提取整个回复作为JSON
                 try:

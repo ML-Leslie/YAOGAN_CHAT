@@ -8,6 +8,42 @@ const API_BASE_URL = 'http://localhost:8000/api';
 
 // 从本地存储获取访问令牌
 const getToken = () => localStorage.getItem('access_token');
+
+// 清除认证信息
+const clearAuthData = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('user_info');
+};
+
+// 通用的fetch包装器，处理认证错误
+const authenticatedFetch = async (url, options = {}) => {
+  const token = getToken();
+  
+  // 添加认证头
+  const headers = {
+    ...options.headers,
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+  
+  // 如果是401错误，清除认证信息并抛出特殊错误
+  if (response.status === 401) {
+    clearAuthData();
+    // 触发全局认证失败事件
+    window.dispatchEvent(new CustomEvent('authenticationFailed'));
+    throw new Error('AUTHENTICATION_FAILED');
+  }
+  
+  return response;
+};
+
 // eslint-disable-next-line no-unused-vars
 const getUserInfo = () => {
   const userInfo = localStorage.getItem('user_info');
@@ -97,11 +133,7 @@ export const getCurrentUser = async () => {
       throw new Error('未登录');
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    const response = await authenticatedFetch(`${API_BASE_URL}/users/me`);
 
     if (!response.ok) {
       throw new Error('获取用户信息失败');
@@ -125,11 +157,7 @@ export const getUserChats = async () => {
       throw new Error('未登录');
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/chats`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    const response = await authenticatedFetch(`${API_BASE_URL}/users/chats`);
 
     if (!response.ok) {
       throw new Error('获取聊天历史失败');
@@ -154,11 +182,8 @@ export const createNewChat = async (title = '新对话') => {
       throw new Error('未登录');
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/chats?title=${encodeURIComponent(title)}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    const response = await authenticatedFetch(`${API_BASE_URL}/users/chats?title=${encodeURIComponent(title)}`, {
+      method: 'POST'
     });
 
     if (!response.ok) {
@@ -184,11 +209,7 @@ export const getChatMessages = async (chatId) => {
       throw new Error('未登录');
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/chats/${chatId}/messages`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    const response = await authenticatedFetch(`${API_BASE_URL}/users/chats/${chatId}/messages`);
 
     if (!response.ok) {
       throw new Error('获取聊天消息失败');

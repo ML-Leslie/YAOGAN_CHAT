@@ -21,6 +21,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // 检查用户登录状态
   useEffect(() => {
@@ -30,7 +31,11 @@ function App() {
       
       if (token && userInfo) {
         try {
-          // 可以使用JWT解码检查令牌是否有效，或直接调用API验证
+          // 调用API验证token的有效性
+          const { getCurrentUser } = require('./services/api');
+          await getCurrentUser();
+          
+          // 如果API调用成功，说明token有效
           const userData = JSON.parse(userInfo);
           setUser(userData);
           setIsAuthenticated(true);
@@ -48,6 +53,21 @@ function App() {
     };
 
     checkAuth();
+
+    // 监听全局认证失败事件
+    const handleAuthFailure = () => {
+      console.log('检测到认证失败，重定向到登录页面');
+      setIsAuthenticated(false);
+      setUser(null);
+      setChats([]);
+      setActiveChat(null);
+    };
+
+    window.addEventListener('authenticationFailed', handleAuthFailure);
+    
+    return () => {
+      window.removeEventListener('authenticationFailed', handleAuthFailure);
+    };
   }, []);
 
   // 响应式监听窗口大小变化
@@ -81,6 +101,7 @@ function App() {
 
   // 处理登录
   const handleLogin = async (username, password) => {
+    setIsLoggingIn(true);
     try {
       await login(username, password);
       const userInfo = JSON.parse(localStorage.getItem('user_info'));
@@ -89,7 +110,10 @@ function App() {
       await loadUserChats();
     } catch (error) {
       console.error('登录失败:', error);
+      alert('登录失败: ' + error.message);
       throw error;
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -115,6 +139,13 @@ function App() {
       }
     } catch (error) {
       console.error('加载聊天历史失败:', error);
+      // 如果是认证失败，重置认证状态
+      if (error.message === 'AUTHENTICATION_FAILED') {
+        setIsAuthenticated(false);
+        setUser(null);
+        setChats([]);
+        setActiveChat(null);
+      }
     }
   };
 
@@ -132,6 +163,13 @@ function App() {
       setActiveChat(formattedChat);
     } catch (error) {
       console.error('创建新聊天失败:', error);
+      // 如果是认证失败，重置认证状态
+      if (error.message === 'AUTHENTICATION_FAILED') {
+        setIsAuthenticated(false);
+        setUser(null);
+        setChats([]);
+        setActiveChat(null);
+      }
     }
   }, []);
   
@@ -211,21 +249,41 @@ function App() {
   
   // 如果仍在加载，显示加载中状态
   if (isLoading) {
-    return <div className="loading">加载中...</div>;
+    return (
+      <div className="loading">
+        <div className="loading-spinner"></div>
+        <div className="loading-text">正在加载...</div>
+      </div>
+    );
   }
   
   // 如果未登录，显示登录界面
   if (!isAuthenticated) {
     return (
       <div className="login-container">
-        <h1>遥感图像分析系统</h1>
-        <button 
-          onClick={() => handleLogin('demo', 'password')}
-          className="login-button"
-        >
-          使用演示账户登录
-        </button>
-        <p>用户名: demo, 密码: password</p>
+        <h1>YAOGAN</h1>
+        <div className="login-card">
+          <h2 className="login-title">遥感图像分析系统</h2>
+          <button 
+            onClick={() => handleLogin('demo', 'password')}
+            className="login-button"
+            disabled={isLoggingIn}
+          >
+            {isLoggingIn ? (
+              <>
+                <div className="loading-spinner" style={{width: '20px', height: '20px', marginRight: '8px', display: 'inline-block'}}></div>
+                登录中...
+              </>
+            ) : (
+              '使用演示账户登录'
+            )}
+          </button>
+          <div className="login-info">
+            <strong>演示账户信息：</strong><br/>
+            用户名: demo<br/>
+            密码: password
+          </div>
+        </div>
       </div>
     );
   };

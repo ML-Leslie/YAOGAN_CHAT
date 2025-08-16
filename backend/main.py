@@ -11,7 +11,7 @@ app = FastAPI(
     title="遥感图像分析API",
     description="一个基于GLM-4.5v的遥感图像分析服务",
     version="0.1.0",
-    # 设置为False可以同时支持带斜杠和不带斜杠的路径
+    # 同时支持带斜杠和不带斜杠的路径
     redirect_slashes=False
 )
 

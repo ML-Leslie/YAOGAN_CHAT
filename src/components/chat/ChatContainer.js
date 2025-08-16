@@ -76,13 +76,16 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
           }
         } catch (error) {
           console.error('加载聊天消息失败:', error);
-          setMessages([{
-            id: 'error',
-            text: `加载消息失败: ${error.message}`,
-            sender: 'system',
-            error: true,
-            timestamp: new Date()
-          }]);
+          // 如果是认证失败，不显示错误消息，让全局处理程序处理
+          if (error.message !== 'AUTHENTICATION_FAILED') {
+            setMessages([{
+              id: 'error',
+              text: `加载消息失败: ${error.message}`,
+              sender: 'system',
+              error: true,
+              timestamp: new Date()
+            }]);
+          }
         } finally {
           setIsTyping(false);
         }
