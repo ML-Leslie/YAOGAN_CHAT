@@ -66,11 +66,9 @@ const ChatMessage = ({ message, onViewInCanvas }) => {
           </div>
         )}
         
-        {/* 消息内容 - 使用Markdown渲染AI回复 */}
+        {/* 消息内容 - 使用Markdown渲染所有消息 */}
         <div className="message-content">
-          {isUser || isSystem ? text : (
-            isObjectMark ? "已在画布完成标记" : <Markdown content={text} />
-          )}
+          {isObjectMark ? "已在画布完成标记" : <Markdown content={text} />}
         </div>
         
         {/* 如果是物体标记模式且有坐标，显示在画布查看按钮 */}

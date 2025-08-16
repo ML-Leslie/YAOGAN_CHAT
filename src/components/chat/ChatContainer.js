@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import { uploadAndAnalyzeImage, pollTaskResult, getChatMessages, processTextMessage, cancelTask, updateChatTitle } from '../../services/api';
+import { uploadAndAnalyzeImage, pollTaskResult, getChatMessages, processTextMessage, processTextMessageAsync, cancelTask, updateChatTitle } from '../../services/api';
 import './ChatContainer.css';
 import './FunctionButtons.css';
 
@@ -192,30 +192,62 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
         
         // 判断是新上传的图片还是已有的图片
         if (currentImage.isExisting) {
-          // 如果是已有图片，则调用文本处理API
+          // 如果是已有图片，则调用异步文本处理API
           console.log('使用已上传的图片进行分析...');
           
-          // 调用文本处理API，传递标记物体模式参数
+          // 调用异步文本处理API，传递标记物体模式参数
           const taskType = markObjectMode ? 'mark_object' : 'description';
           console.log(`使用任务类型: ${taskType}`);
-          const result = await processTextMessage(text, activeChat.id, taskType);
+          response = await processTextMessageAsync(text, activeChat.id, taskType);
+          console.log('文本处理任务提交成功，获取任务ID:', response.task_id);
           
-          if (result.status === "success") {
-            // 添加AI回复
-            const aiMessage = {
-              id: Date.now() + 2,
-              text: result.result,
-              sender: 'ai',
-              timestamp: new Date(),
-              thinking: result.thinking,
-              objectCoordinates: result.object_coordinates,
-              isObjectMark: result.is_object_mark
-            };
-            
-            // 移除处理中消息并添加AI回复
-            setMessages(prev => prev.filter(msg => msg.id !== processingMessageId).concat([aiMessage]));
-          } else {
-            throw new Error(result.message || "处理失败");
+          // 保存当前任务ID，用于取消操作
+          setCurrentTaskId(response.task_id);
+          
+          // 轮询任务结果
+          console.log('开始轮询任务结果...');
+          const result = await pollTaskResult(
+            response.task_id, 
+            3000, 
+            30, 
+            (attempts, maxAttempts) => {
+              console.log(`轮询进度: ${attempts}/${maxAttempts}`);
+              // 可以更新处理中消息，显示进度
+              if (processingMessageId) {
+                setMessages(prev => prev.map(msg => 
+                  msg.id === processingMessageId 
+                    ? {...msg, text: `正在分析图像，请稍候... (${attempts}/${maxAttempts})`}
+                    : msg
+                ));
+              }
+            }
+          );
+          
+          // 清除当前任务ID
+          setCurrentTaskId(null);
+          
+          console.log('轮询完成，获取结果:', result);
+          
+          // 添加AI回复
+          const aiMessage = {
+            id: Date.now() + 2,
+            text: result.result || '分析完成，但未返回结果',
+            sender: 'ai',
+            timestamp: new Date(),
+            thinking: result.thinking,
+            objectCoordinates: result.object_coordinates,
+            isObjectMark: result.is_object_mark
+          };
+          
+          // 移除处理中消息并添加AI回复
+          setMessages(prev => prev.filter(msg => msg.id !== processingMessageId).concat([aiMessage]));
+          
+          // 如果是标记物体的回复，立即触发画布更新
+          if (result.is_object_mark || result.object_coordinates) {
+            console.log('标记物体消息已添加，触发画布更新');
+            if (window.updateCanvasDisplay) {
+              window.updateCanvasDisplay();
+            }
           }
         } else {
           // 如果是新上传图片，发送图像分析请求
@@ -309,34 +341,58 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
             processingMessageId = processingMessage.id;
             setMessages(prev => [...prev, processingMessage]);
             
-            // 调用文本处理API
+            // 调用异步文本处理API
             const taskType = markObjectMode ? 'mark_object' : 'description';
-            const result = await processTextMessage(text, activeChat.id, taskType);
+            const response = await processTextMessageAsync(text, activeChat.id, taskType);
+            console.log('文本处理任务提交成功，获取任务ID:', response.task_id);
             
-            if (result.status === "success") {
-              // 添加AI回复
-              const aiMessage = {
-                id: Date.now() + 2,
-                text: result.result,
-                sender: 'ai',
-                timestamp: new Date(),
-                thinking: result.thinking,
-                objectCoordinates: result.object_coordinates,
-                isObjectMark: result.is_object_mark
-              };
-              
-              // 移除处理中消息并添加AI回复
-              setMessages(prev => prev.filter(msg => msg.id !== processingMessageId).concat([aiMessage]));
-              
-              // 如果是标记物体的回复，立即触发画布更新
-              if (result.is_object_mark || result.object_coordinates) {
-                console.log('标记物体消息已添加，触发画布更新');
-                if (window.updateCanvasDisplay) {
-                  window.updateCanvasDisplay();
+            // 保存当前任务ID，用于取消操作
+            setCurrentTaskId(response.task_id);
+            
+            // 轮询任务结果
+            console.log('开始轮询任务结果...');
+            const result = await pollTaskResult(
+              response.task_id, 
+              3000, 
+              30, 
+              (attempts, maxAttempts) => {
+                console.log(`轮询进度: ${attempts}/${maxAttempts}`);
+                // 可以更新处理中消息，显示进度
+                if (processingMessageId) {
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === processingMessageId 
+                      ? {...msg, text: `正在处理您的问题，请稍候... (${attempts}/${maxAttempts})`}
+                      : msg
+                  ));
                 }
               }
-            } else {
-              throw new Error(result.message || "处理失败");
+            );
+            
+            // 清除当前任务ID
+            setCurrentTaskId(null);
+            
+            console.log('轮询完成，获取结果:', result);
+            
+            // 添加AI回复
+            const aiMessage = {
+              id: Date.now() + 2,
+              text: result.result || '处理完成，但未返回结果',
+              sender: 'ai',
+              timestamp: new Date(),
+              thinking: result.thinking,
+              objectCoordinates: result.object_coordinates,
+              isObjectMark: result.is_object_mark
+            };
+            
+            // 移除处理中消息并添加AI回复
+            setMessages(prev => prev.filter(msg => msg.id !== processingMessageId).concat([aiMessage]));
+            
+            // 如果是标记物体的回复，立即触发画布更新
+            if (result.is_object_mark || result.object_coordinates) {
+              console.log('标记物体消息已添加，触发画布更新');
+              if (window.updateCanvasDisplay) {
+                window.updateCanvasDisplay();
+              }
             }
           } catch (error) {
             // 如果处理失败，提示用户上传图像

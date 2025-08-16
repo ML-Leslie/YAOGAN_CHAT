@@ -386,6 +386,45 @@ export const processTextMessage = async (prompt, chatId, taskType = 'description
 };
 
 /**
+ * 异步处理文本消息（基于已有图像上下文）- 支持取消功能
+ * @param {string} prompt - 用户提问
+ * @param {string} chatId - 聊天ID
+ * @param {string} taskType - 任务类型（可选，默认为description，可以是mark_object表示标记物体）
+ * @returns {Promise<Object>} - 包含任务ID的响应对象
+ */
+export const processTextMessageAsync = async (prompt, chatId, taskType = 'description') => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('未登录');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chat/text-async`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        prompt,
+        chat_id: chatId,
+        task_type: taskType
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || '提交文本消息任务失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('提交文本消息任务时出错:', error);
+    throw error;
+  }
+};
+
+/**
  * 取消正在处理中的任务
  * @param {string} taskId - 任务ID
  * @returns {Promise<Object>} - 取消结果

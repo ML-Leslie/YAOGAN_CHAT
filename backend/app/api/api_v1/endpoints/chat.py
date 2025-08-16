@@ -2,12 +2,16 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
 import asyncio
+import uuid
+import time
+import json
 
 from app.db.database import get_db
 from app.services.user_service import MessageService, ChatService
 from app.api.api_v1.endpoints.users import get_current_user
 from app.db.models import User, Message
 from app.services.zhipuai_service import zhipuai_service
+from app.worker.tasks import process_text_task
 
 router = APIRouter()
 
@@ -304,3 +308,107 @@ async def process_text_message(
             "message": user_friendly_message,
             "original_error": error_message
         }
+
+
+@router.post("/text-async")
+async def process_text_message_async(
+    data: Dict[str, Any] = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    异步处理文本消息，支持取消功能
+    
+    请求体:
+    ```
+    {
+      "prompt": "问题文本",
+      "chat_id": "聊天会话ID",
+      "task_type": "description" // 可选，可以是"mark_object"表示标记物体
+    }
+    ```
+    
+    返回:
+    ```
+    {
+      "task_id": "任务ID",
+      "status": "submitted",
+      "message": "任务已提交"
+    }
+    ```
+    """
+    # 验证请求参数
+    if "prompt" not in data:
+        raise HTTPException(
+            status_code=400,
+            detail="缺少必要参数: prompt"
+        )
+    if "chat_id" not in data:
+        raise HTTPException(
+            status_code=400,
+            detail="缺少必要参数: chat_id"
+        )
+    
+    prompt = data["prompt"]
+    chat_id = data["chat_id"]
+    task_type = data.get("task_type", "description")
+    
+    # 验证chat_id是否有效
+    chat = ChatService.get_chat_by_id(db, chat_id)
+    if not chat or chat.user_id != current_user.id:
+        raise HTTPException(
+            status_code=404,
+            detail="聊天会话不存在或不属于当前用户"
+        )
+    
+    # 存储用户消息
+    MessageService.create_message(
+        db=db,
+        chat_id=chat_id,
+        text=prompt,
+        sender="user"
+    )
+    
+    # 生成任务ID
+    task_id = str(uuid.uuid4())
+    
+    # 使用Redis存储任务信息
+    from redis import Redis
+    from app.core.config import REDIS_HOST, REDIS_PORT, REDIS_DB
+    
+    redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+    
+    # 存储任务基本信息
+    task_info = {
+        "task_id": task_id,
+        "chat_id": chat_id,
+        "prompt": prompt,
+        "task_type": task_type,
+        "user_id": current_user.id,
+        "status": "submitted",
+        "submitted_at": time.time()
+    }
+    
+    redis_client.setex(
+        f"task_result:{task_id}",
+        86400,  # 24小时过期
+        json.dumps(task_info)
+    )
+    
+    # 提交异步任务
+    try:
+        process_text_task.delay(task_id, prompt, chat_id, task_type)
+        
+        return {
+            "task_id": task_id,
+            "status": "submitted", 
+            "message": "文本处理任务已提交"
+        }
+        
+    except Exception as e:
+        # 如果提交任务失败，删除Redis中的任务信息
+        redis_client.delete(f"task_result:{task_id}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"提交任务失败: {str(e)}"
+        )

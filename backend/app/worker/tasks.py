@@ -315,3 +315,279 @@ def process_image_task(task_id, image_path, prompt, task_type, chat_id=None):
         
         logger.error(f"处理任务 {task_id} 时出错: {str(e)}")
         return error_result
+
+
+@celery_app.task(name="process_text_task")
+def process_text_task(task_id, prompt, chat_id, task_type="description"):
+    """
+    处理文本消息的Celery任务（基于已有图像上下文）
+    
+    Args:
+        task_id: 任务ID
+        prompt: 用户提问
+        chat_id: 聊天会话ID
+        task_type: 任务类型 (例如: "description", "mark_object")
+        
+    Returns:
+        任务结果字典
+    """
+    logger.info(f"开始处理文本任务 {task_id}, 任务类型: {task_type}, 聊天ID: {chat_id}")
+    
+    # 导入Redis客户端
+    from redis import Redis
+    from app.core.config import REDIS_HOST, REDIS_PORT, REDIS_DB
+    
+    redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+    
+    # 标记任务开始处理
+    redis_client.setex(f"task_processing:{task_id}", 3600, "1")
+    
+    try:
+        db = get_db()
+        
+        # 验证聊天会话
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if not chat:
+            raise Exception("聊天会话不存在")
+        
+        # 构建上下文，获取最近20条消息
+        messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.timestamp.desc()).limit(20).all()
+        messages = sorted(messages, key=lambda x: x.timestamp)
+        
+        context_messages = []
+        # 查找是否有图片消息
+        has_image = False
+        image_path = None
+        
+        for msg in messages:
+            if msg.sender == "system" and msg.image_path:
+                has_image = True
+                image_path = msg.image_path
+            
+            if msg.sender == "user":
+                context_messages.append({
+                    "role": "user", 
+                    "content": msg.text
+                })
+            elif msg.sender == "ai":
+                context_messages.append({
+                    "role": "assistant", 
+                    "content": msg.text
+                })
+        
+        if not has_image:
+            raise Exception("聊天中没有上传的图像")
+        
+        # 验证图像文件是否存在
+        image_filename = os.path.basename(image_path.replace("/api/uploads/", ""))
+        local_image_path = os.path.join(UPLOAD_FOLDER, image_filename)
+        
+        if not os.path.isfile(local_image_path):
+            raise Exception("历史图像文件已不可访问，请重新上传图像")
+        
+        # 检查任务是否已被取消
+        if redis_client.exists(f"task_cancel:{task_id}"):
+            logger.info(f"文本任务 {task_id} 已被用户取消，终止处理")
+            # 删除取消标记
+            redis_client.delete(f"task_cancel:{task_id}")
+            return {
+                "task_id": task_id,
+                "chat_id": chat_id,
+                "status": "canceled",
+                "result": "用户已取消任务",
+                "completed_at": time.time()
+            }
+        
+        # 读取图像并转换为base64
+        with open(local_image_path, "rb") as image_file:
+            image_base64 = base64.b64encode(image_file.read()).decode('utf-8')
+        
+        # 根据task_type设置API任务类型
+        api_task_type = task_type
+        if task_type == "mark_object":
+            api_task_type = "detection"
+        
+        # 创建事件循环调用异步方法
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(
+            zhipuai_service.analyze_image(
+                image_base64=image_base64, 
+                prompt=prompt, 
+                task_type=api_task_type, 
+                context_messages=context_messages if context_messages else None,
+                task_id=task_id,  # 传递task_id用于检查取消
+                redis_client=redis_client  # 传递Redis客户端
+            )
+        )
+        loop.close()
+        
+        # 处理和格式化结果
+        if hasattr(result, "content"):
+            content = result.content
+        else:
+            content = str(result)
+            
+        thinking = getattr(result, "thinking", None)
+        
+        # 提取对象坐标（如果是标记物体任务）
+        object_coordinates = None
+        if task_type == "mark_object":
+            try:
+                import re
+                # 注意：不重新导入json，使用全局的json模块
+                
+                # 尝试从结果中提取坐标信息
+                try:
+                    full_json = json.loads(content)
+                    if isinstance(full_json, dict) and ('bbox' in full_json or 
+                            ('x' in full_json and 'y' in full_json and 'width' in full_json and 'height' in full_json)):
+                        object_coordinates = content
+                    elif isinstance(full_json, list) and len(full_json) > 0:
+                        if isinstance(full_json[0], dict) and ('bbox' in full_json[0] or 
+                                ('x' in full_json[0] and 'y' in full_json[0] and 'width' in full_json[0] and 'height' in full_json[0])):
+                            object_coordinates = content
+                        elif len(full_json) >= 4 and all(isinstance(item, (int, float)) for item in full_json[:4]):
+                            object_coordinates = content
+                except:
+                    # 提取JSON格式的坐标信息
+                    bbox_json_pattern = r'\{"label":[^}]+,"bbox":\[[^\]]+\]\}'
+                    bbox_matches = re.findall(bbox_json_pattern, content)
+                    
+                    if bbox_matches:
+                        object_coordinates = bbox_matches[0]
+                    else:
+                        json_pattern = r'\{(?:[^{}]|(?:\{[^{}]*\}))*\}'
+                        json_matches = re.findall(json_pattern, content)
+                        
+                        array_pattern = r'\[(?:[^\[\]]|\[[^\[\]]*\])*\]'
+                        array_matches = re.findall(array_pattern, content)
+                        
+                        if json_matches:
+                            for match in json_matches:
+                                try:
+                                    obj = json.loads(match)
+                                    if isinstance(obj, dict) and ('bbox' in obj or 
+                                        ('x' in obj and 'y' in obj and 'width' in obj and 'height' in obj) or
+                                        'label' in obj):
+                                        object_coordinates = match
+                                        break
+                                except:
+                                    pass
+                                    
+                        if not object_coordinates and array_matches:
+                            for match in array_matches:
+                                try:
+                                    arr = json.loads(match)
+                                    if isinstance(arr, list):
+                                        if len(arr) >= 4 and all(isinstance(item, (int, float)) for item in arr[:4]):
+                                            object_coordinates = match
+                                            break
+                                        elif len(arr) > 0 and isinstance(arr[0], dict):
+                                            if ('bbox' in arr[0] or 
+                                                ('x' in arr[0] and 'y' in arr[0] and 'width' in arr[0] and 'height' in arr[0])):
+                                                object_coordinates = match
+                                                break
+                                except:
+                                    pass
+            except Exception as e:
+                logger.warning(f"提取坐标信息时出错: {e}")
+        
+        # 保存到数据库
+        try:
+            # 添加AI回复
+            MessageService.create_message(
+                db=db,
+                chat_id=chat_id,
+                text=content,
+                sender="ai",
+                thinking=thinking,
+                object_coordinates=object_coordinates,
+                is_object_mark=(task_type == "mark_object")
+            )
+            
+            db.commit()
+        except Exception as db_error:
+            logger.error(f"保存消息到数据库时出错: {str(db_error)}")
+            db.rollback()
+        finally:
+            db.close()
+        
+        # 将成功结果存入Redis
+        success_result = {
+            "task_id": task_id,
+            "chat_id": chat_id,
+            "status": "completed",
+            "result": content,
+            "thinking": thinking,
+            "object_coordinates": object_coordinates,
+            "is_object_mark": (task_type == "mark_object"),
+            "completed_at": time.time()
+        }
+        
+        redis_client.setex(
+            f"task_result:{task_id}", 
+            86400,  # 结果保留24小时
+            json.dumps(success_result)
+        )
+        
+        # 删除处理中标记和取消标记（如果有）
+        redis_client.delete(f"task_processing:{task_id}")
+        redis_client.delete(f"task_cancel:{task_id}")
+        
+        logger.info(f"文本任务 {task_id} 处理完成")
+        return success_result
+        
+    except Exception as e:
+        # 错误处理
+        error_result = {
+            "task_id": task_id,
+            "chat_id": chat_id,
+            "status": "failed",
+            "error": str(e),
+            "completed_at": time.time()
+        }
+        
+        # 保存错误消息到数据库
+        if chat_id:
+            try:
+                db = get_db()
+                
+                # 针对特定错误类型给出更友好的提示
+                if "图片输入格式/解析错误" in str(e):
+                    user_friendly_message = "历史图像可能已过期或格式不兼容，请重新上传图像"
+                elif "聊天中没有上传的图像" in str(e):
+                    user_friendly_message = "请先上传遥感图像以便我进行分析"
+                elif "历史图像文件已不可访问" in str(e):
+                    user_friendly_message = "历史图像文件已不可访问，请重新上传图像"
+                else:
+                    user_friendly_message = f"处理出错: {str(e)}"
+                
+                MessageService.create_message(
+                    db=db,
+                    chat_id=chat_id,
+                    text=user_friendly_message,
+                    sender="ai",
+                    error=True
+                )
+                
+                db.commit()
+            except Exception as db_error:
+                logger.error(f"保存错误消息到数据库时出错: {str(db_error)}")
+                db.rollback()
+            finally:
+                db.close()
+        
+        # 将错误结果存入Redis
+        redis_client.setex(
+            f"task_result:{task_id}", 
+            86400,  # 结果保留24小时
+            json.dumps(error_result)
+        )
+        
+        # 删除处理中标记和取消标记（如果有）
+        redis_client.delete(f"task_processing:{task_id}")
+        redis_client.delete(f"task_cancel:{task_id}")
+        
+        logger.error(f"处理文本任务 {task_id} 时出错: {str(e)}")
+        return error_result
