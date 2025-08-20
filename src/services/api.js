@@ -3,8 +3,7 @@
  * 包含与后端通信的所有API调用函数
  */
 
-// API基础URL
-const API_BASE_URL = 'http://localhost:8000/api';
+import { API_CONFIG } from '../config/api';
 
 // 从本地存储获取访问令牌
 const getToken = () => localStorage.getItem('access_token');
@@ -44,12 +43,6 @@ const authenticatedFetch = async (url, options = {}) => {
   return response;
 };
 
-// eslint-disable-next-line no-unused-vars
-const getUserInfo = () => {
-  const userInfo = localStorage.getItem('user_info');
-  return userInfo ? JSON.parse(userInfo) : null;
-};
-
 /**
  * 用户登录
  * @param {string} username - 用户名
@@ -62,7 +55,7 @@ export const login = async (username, password) => {
     formData.append('username', username);
     formData.append('password', password);
 
-    const response = await fetch(`${API_BASE_URL}/users/token`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/users/token`, {
       method: 'POST',
       body: formData
     });
@@ -98,7 +91,7 @@ export const login = async (username, password) => {
  */
 export const register = async (username, password, displayName) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/register`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/users/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -133,7 +126,7 @@ export const getCurrentUser = async () => {
       throw new Error('未登录');
     }
 
-    const response = await authenticatedFetch(`${API_BASE_URL}/users/me`);
+    const response = await authenticatedFetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/users/me`);
 
     if (!response.ok) {
       throw new Error('获取用户信息失败');
@@ -157,7 +150,7 @@ export const getUserChats = async () => {
       throw new Error('未登录');
     }
 
-    const response = await authenticatedFetch(`${API_BASE_URL}/users/chats`);
+    const response = await authenticatedFetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/users/chats`);
 
     if (!response.ok) {
       throw new Error('获取聊天历史失败');
@@ -182,7 +175,7 @@ export const createNewChat = async (title = '新对话') => {
       throw new Error('未登录');
     }
 
-    const response = await authenticatedFetch(`${API_BASE_URL}/users/chats?title=${encodeURIComponent(title)}`, {
+    const response = await authenticatedFetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/users/chats?title=${encodeURIComponent(title)}`, {
       method: 'POST'
     });
 
@@ -209,7 +202,7 @@ export const getChatMessages = async (chatId) => {
       throw new Error('未登录');
     }
 
-    const response = await authenticatedFetch(`${API_BASE_URL}/users/chats/${chatId}/messages`);
+    const response = await authenticatedFetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/users/chats/${chatId}/messages`);
 
     if (!response.ok) {
       throw new Error('获取聊天消息失败');
@@ -234,7 +227,7 @@ export const deleteChat = async (chatId) => {
       throw new Error('未登录');
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/chats/${chatId}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/users/chats/${chatId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -276,7 +269,7 @@ export const uploadAndAnalyzeImage = async (imageFile, prompt, taskType = 'descr
       formData.append('chat_id', chatId);
     }
 
-    const response = await fetch(`${API_BASE_URL}/analyze/image/`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/analyze/image/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -304,7 +297,7 @@ export const uploadAndAnalyzeImage = async (imageFile, prompt, taskType = 'descr
 export const getTaskResult = async (taskId) => {
   try {
     console.log(`获取任务结果，任务ID: ${taskId}`);
-    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/`);
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/tasks/${taskId}/`);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -333,7 +326,7 @@ export const getTaskResult = async (taskId) => {
  */
 export const checkHealth = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`);
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/health`);
 
     if (!response.ok) {
       throw new Error(`健康检查失败，状态码: ${response.status}`);
@@ -360,7 +353,7 @@ export const processTextMessage = async (prompt, chatId, taskType = 'description
       throw new Error('未登录');
     }
 
-    const response = await fetch(`${API_BASE_URL}/chat/text`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/chat/text`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -399,7 +392,7 @@ export const processTextMessageAsync = async (prompt, chatId, taskType = 'descri
       throw new Error('未登录');
     }
 
-    const response = await fetch(`${API_BASE_URL}/chat/text-async`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/chat/text-async`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -436,7 +429,7 @@ export const cancelTask = async (taskId) => {
       throw new Error('未登录');
     }
 
-    const response = await fetch(`${API_BASE_URL}/cancel/${taskId}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/cancel/${taskId}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -469,7 +462,7 @@ export const updateChatTitle = async (chatId, title) => {
       throw new Error('未登录');
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/chats/${chatId}/title`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/users/chats/${chatId}/title`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,

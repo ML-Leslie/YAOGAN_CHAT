@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import { uploadAndAnalyzeImage, pollTaskResult, getChatMessages, processTextMessage, processTextMessageAsync, cancelTask, updateChatTitle } from '../../services/api';
+import { uploadAndAnalyzeImage, getChatMessages, processTextMessageAsync, cancelTask, updateChatTitle } from '../../services/api';
+import { getImageUrl } from '../../config/api';
+import { useTaskPolling } from '../../hooks/useTaskPolling';
 import './ChatContainer.css';
 import './FunctionButtons.css';
-
-// API基础URL - 用于构建图片完整URL
-const API_BASE_URL = 'http://localhost:8000';
 
 const ChatContainer = ({ activeChat, onFunctionSelect }) => {
   const [messages, setMessages] = useState([]);
@@ -16,8 +15,11 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const [imageUploaded, setImageUploaded] = useState(false); // 记录图像是否已上传
-  const [currentTaskId, setCurrentTaskId] = useState(null); // 当前正在处理的任务ID
   const [isGenerating, setIsGenerating] = useState(false); // 是否正在生成回复
+  const [currentTaskId, setCurrentTaskId] = useState(null); // 当前任务ID
+  
+  // 使用轮询Hook
+  const { startPolling } = useTaskPolling();
 
   useEffect(() => {
     // 加载当前活跃聊天的消息历史
@@ -34,7 +36,7 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
               sender: msg.sender,
               timestamp: new Date(msg.timestamp),
               // 如果有image_path属性，构建完整的图片URL
-              image: msg.image_path ? `${API_BASE_URL}${msg.image_path}` : null,
+              image: msg.image_path ? getImageUrl(msg.image_path) : null,
               thinking: msg.thinking,
               error: msg.error,
               // 添加物体坐标和标记状态
@@ -180,7 +182,7 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
         // 添加处理中消息
         const processingMessage = {
           id: Date.now() + 1,
-          text: '正在分析图像，请稍候...',
+          text: '正在分析图像，请稍候... (1/120)',
           sender: 'system',
           timestamp: new Date()
         };
@@ -201,15 +203,13 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
           response = await processTextMessageAsync(text, activeChat.id, taskType);
           console.log('文本处理任务提交成功，获取任务ID:', response.task_id);
           
-          // 保存当前任务ID，用于取消操作
+          // 设置当前任务ID，用于取消功能
           setCurrentTaskId(response.task_id);
           
-          // 轮询任务结果
+          // 使用轮询Hook处理任务
           console.log('开始轮询任务结果...');
-          const result = await pollTaskResult(
+          const result = await startPolling(
             response.task_id, 
-            3000, 
-            30, 
             (attempts, maxAttempts) => {
               console.log(`轮询进度: ${attempts}/${maxAttempts}`);
               // 可以更新处理中消息，显示进度
@@ -222,9 +222,6 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
               }
             }
           );
-          
-          // 清除当前任务ID
-          setCurrentTaskId(null);
           
           console.log('轮询完成，获取结果:', result);
           
@@ -257,15 +254,13 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
           response = await uploadAndAnalyzeImage(currentImage, text, taskType, activeChat?.id);
           console.log('图像上传成功，获取任务ID:', response.task_id);
           
-          // 保存当前任务ID，用于取消操作
+          // 设置当前任务ID，用于取消功能
           setCurrentTaskId(response.task_id);
           
-          // 轮询任务结果
+          // 使用轮询Hook处理任务
           console.log('开始轮询任务结果...');
-          const result = await pollTaskResult(
+          const result = await startPolling(
             response.task_id, 
-            3000, 
-            30, 
             (attempts, maxAttempts) => {
               console.log(`轮询进度: ${attempts}/${maxAttempts}`);
               // 可以更新处理中消息，显示进度
@@ -278,9 +273,6 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
               }
             }
           );
-          
-          // 清除当前任务ID
-          setCurrentTaskId(null);
           
           console.log('轮询完成，获取结果:', result);
           
@@ -320,9 +312,9 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
               
               setCurrentImage({ 
                 isExisting: true, 
-                url: `${API_BASE_URL}${imagePath}`
+                url: getImageUrl(imagePath)
               });
-              console.log('图片URL设置为:', `${API_BASE_URL}${imagePath}`);
+              console.log('图片URL设置为:', getImageUrl(imagePath));
             }
           }
         }
@@ -333,7 +325,7 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
             // 添加处理中消息
             const processingMessage = {
               id: Date.now() + 1,
-              text: '正在处理您的问题，请稍候...',
+              text: '正在处理您的问题，请稍候... (1/120)',
               sender: 'system',
               timestamp: new Date()
             };
@@ -346,15 +338,13 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
             const response = await processTextMessageAsync(text, activeChat.id, taskType);
             console.log('文本处理任务提交成功，获取任务ID:', response.task_id);
             
-            // 保存当前任务ID，用于取消操作
+            // 设置当前任务ID，用于取消功能
             setCurrentTaskId(response.task_id);
             
-            // 轮询任务结果
+            // 使用轮询Hook处理任务
             console.log('开始轮询任务结果...');
-            const result = await pollTaskResult(
+            const result = await startPolling(
               response.task_id, 
-              3000, 
-              30, 
               (attempts, maxAttempts) => {
                 console.log(`轮询进度: ${attempts}/${maxAttempts}`);
                 // 可以更新处理中消息，显示进度
@@ -367,9 +357,6 @@ const ChatContainer = ({ activeChat, onFunctionSelect }) => {
                 }
               }
             );
-            
-            // 清除当前任务ID
-            setCurrentTaskId(null);
             
             console.log('轮询完成，获取结果:', result);
             

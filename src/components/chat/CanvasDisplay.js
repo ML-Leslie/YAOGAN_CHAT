@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import Canvas from '../Canvas';
 import ImageCanvas from '../ImageCanvas';
 import { getChatMessages } from '../../services/api';
+import { getImageUrl } from '../../config/api';
 import './CanvasDisplay.css';
 
 // 创建一个自定义事件用于通知画布更新
@@ -13,13 +13,11 @@ window.updateCanvasDisplay = function() {
 };
 
 const CanvasDisplay = ({ width, height, onClose, activeChat }) => {
-  const [canvasMode, setCanvasMode] = useState('image'); // 默认使用图像画布
+  // 直接使用ImageCanvas，不再需要模式切换
   const [objectCoordinates, setObjectCoordinates] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
   const [updateTrigger, setUpdateTrigger] = useState(0); // 用于触发重新加载
   
-  // API基础URL
-  const API_BASE_URL = 'http://localhost:8000';
 
   // 监听自定义事件，当点击"在画布中查看"按钮时触发
   useEffect(() => {
@@ -80,7 +78,7 @@ const CanvasDisplay = ({ width, height, onClose, activeChat }) => {
           if (lastImageMessage) {
             if (lastImageMessage.image_path) {
               const imagePath = lastImageMessage.image_path;
-              const fullImageUrl = `${API_BASE_URL}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`;
+              const fullImageUrl = getImageUrl(imagePath);
               console.log('设置图像URL:', fullImageUrl);
               setImageUrl(fullImageUrl);
             } else {
@@ -89,7 +87,7 @@ const CanvasDisplay = ({ width, height, onClose, activeChat }) => {
               for (const msg of systemMessages) {
                 if (msg.image_path) {
                   const imagePath = msg.image_path;
-                  const fullImageUrl = `${API_BASE_URL}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`;
+                  const fullImageUrl = getImageUrl(imagePath);
                   console.log('从其他系统消息找到图像URL:', fullImageUrl);
                   setImageUrl(fullImageUrl);
                   break;
@@ -202,21 +200,17 @@ const CanvasDisplay = ({ width, height, onClose, activeChat }) => {
     };
     
     loadObjectData();
-  }, [activeChat, API_BASE_URL, updateTrigger]); // 添加updateTrigger到依赖数组中，这样当它变化时会触发重新加载
+  }, [activeChat, updateTrigger]); // 添加updateTrigger到依赖数组中，这样当它变化时会触发重新加载
 
   return (
     <div className="canvas-display">
       <div className="canvas-content">
-        {canvasMode === 'basic' ? (
-          <Canvas width={width} height={height} />
-        ) : (
-          <ImageCanvas 
-            width={width} 
-            height={height} 
-            initialImageUrl={imageUrl}
-            objectCoordinates={objectCoordinates}
-          />
-        )}
+        <ImageCanvas 
+          width={width} 
+          height={height} 
+          initialImageUrl={imageUrl}
+          objectCoordinates={objectCoordinates}
+        />
       </div>
     </div>
   );

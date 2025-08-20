@@ -26,16 +26,7 @@ const Sidebar = ({ chats, activeChat, onChatSelect, onNewChat, onDeleteChat, use
   const handleMouseLeave = () => {
     setIsHovered(false);
   };
-  // 处理退出
-//   const handleLogout = () => {
-//     localStorage.removeItem('access_token');
-//     localStorage.removeItem('user_info');
-//     setUser(null);
-//     setIsAuthenticated(false);
-//     setChats([]);
-//     setActiveChat(null);
-//   };
-  // 根据鼠标悬停状态和固定状态决定侧边栏是否折叠
+    // 根据鼠标悬停状态和固定状态决定侧边栏是否折叠
   useEffect(() => {
     if (forceCollapsed) {
       // 如果强制折叠，则忽略其他状态直接折叠
